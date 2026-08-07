@@ -1,0 +1,8 @@
+{
+  "name": "android-applet",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo Android build complete"
+  }
+}
