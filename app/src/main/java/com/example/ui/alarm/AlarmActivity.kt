@@ -185,7 +185,7 @@ fun AlarmFullScreenContent(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = IndigoDark
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
@@ -205,7 +205,7 @@ fun AlarmFullScreenContent(
                         .clip(CircleShape)
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(AmberAccent, Color(0xFFFF6F00))
+                                colors = listOf(AmberAccent, Color(0xFFFF9800))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -221,7 +221,7 @@ fun AlarmFullScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "याद AI - समय हो गया!",
+                    text = "समय हो गया!",
                     style = MaterialTheme.typography.titleMedium,
                     color = AmberAccent,
                     fontWeight = FontWeight.Bold
@@ -232,7 +232,7 @@ fun AlarmFullScreenContent(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
@@ -242,7 +242,7 @@ fun AlarmFullScreenContent(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.15f)
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
@@ -255,7 +255,7 @@ fun AlarmFullScreenContent(
                             Text(
                                 text = script,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -275,12 +275,12 @@ fun AlarmFullScreenContent(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E7D32)
+                        containerColor = Color(0xFF2563EB)
                     )
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("स्वीकार करें (Dismiss)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("स्वीकार करें", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 OutlinedButton(
@@ -288,14 +288,11 @@ fun AlarmFullScreenContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    )
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Icon(Icons.Default.Snooze, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("10 मिनट स्नूज़ करें (Snooze 10 Mins)", fontSize = 16.sp)
+                    Text("10 मिनट स्नूज़ करें", fontSize = 16.sp)
                 }
             }
         }

@@ -50,7 +50,7 @@ fun SettingsProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("सेटिंग्स और प्रोफाइल (Settings)") },
+                title = { Text("सेटिंग्स") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -164,10 +164,10 @@ fun SettingsProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI की भाषा और आवाज़ (Voice Settings)", fontWeight = FontWeight.Bold)
+                        Text("AI की भाषा और आवाज़", fontWeight = FontWeight.Bold)
                     }
 
-                    Text("भाषा chọn करें:", style = MaterialTheme.typography.labelMedium)
+                    Text("भाषा चुनें:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
                             selected = language == "hi",
@@ -175,7 +175,7 @@ fun SettingsProfileScreen(
                                 language = "hi"
                                 onSetVoiceSettings(language, voiceGender)
                             },
-                            label = { Text("हिंदी (Hindi)") }
+                            label = { Text("हिंदी") }
                         )
                         FilterChip(
                             selected = language == "en",
@@ -187,7 +187,7 @@ fun SettingsProfileScreen(
                         )
                     }
 
-                    Text("आवाज़ चुने (Voice Gender):", style = MaterialTheme.typography.labelMedium)
+                    Text("आवाज़ चुनें:", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
                             selected = voiceGender == "FEMALE",
@@ -195,7 +195,7 @@ fun SettingsProfileScreen(
                                 voiceGender = "FEMALE"
                                 onSetVoiceSettings(language, voiceGender)
                             },
-                            label = { Text("महिला (Female)") }
+                            label = { Text("महिला") }
                         )
                         FilterChip(
                             selected = voiceGender == "MALE",
@@ -203,7 +203,7 @@ fun SettingsProfileScreen(
                                 voiceGender = "MALE"
                                 onSetVoiceSettings(language, voiceGender)
                             },
-                            label = { Text("पुरुष (Male)") }
+                            label = { Text("पुरुष") }
                         )
                     }
 
@@ -217,7 +217,7 @@ fun SettingsProfileScreen(
                     ) {
                         Icon(Icons.Default.VolumeUp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("आवाज़ टेस्ट करें (Test TTS Voice)")
+                        Text("आवाज़ टेस्ट करें")
                     }
                 }
             }
@@ -228,25 +228,13 @@ fun SettingsProfileScreen(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("थीम सेटिंग्स (Theme Mode)", fontWeight = FontWeight.Bold)
+                    Text("थीम रंग", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = uiState.isDarkMode == null,
-                            onClick = { onSetDarkMode(null) },
-                            label = { Text("System Default") }
-                        )
-                        FilterChip(
-                            selected = uiState.isDarkMode == false,
-                            onClick = { onSetDarkMode(false) },
-                            label = { Text("Light Mode ☀️") }
-                        )
-                        FilterChip(
-                            selected = uiState.isDarkMode == true,
-                            onClick = { onSetDarkMode(true) },
-                            label = { Text("Dark Mode 🌙") }
-                        )
-                    }
+                    Text(
+                        text = "लाइट और साफ-सुथरा थीम (Light & Simple Mode Active)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 

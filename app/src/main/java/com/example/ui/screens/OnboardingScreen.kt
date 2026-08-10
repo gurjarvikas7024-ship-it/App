@@ -60,7 +60,7 @@ fun OnboardingScreen(
                         .clip(CircleShape)
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(IndigoPrimary, IndigoDark)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -68,7 +68,7 @@ fun OnboardingScreen(
                     Icon(
                         imageVector = Icons.Default.NotificationsActive,
                         contentDescription = "Yaad AI Logo",
-                        tint = AmberAccent,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(52.dp)
                     )
                 }
@@ -76,7 +76,7 @@ fun OnboardingScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "याद AI (Yaad AI)",
+                    text = "याद AI",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

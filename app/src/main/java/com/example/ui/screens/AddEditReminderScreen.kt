@@ -67,7 +67,7 @@ fun AddEditReminderScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existingReminder == null) "नया रिमाइंडर (New Reminder)" else "रिमाइंडर एडिट करें") },
+                title = { Text(if (existingReminder == null) "नया रिमाइंडर" else "संपादित करें") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -91,8 +91,8 @@ fun AddEditReminderScreen(
                     title = it
                     updateVoiceScriptDefault()
                 },
-                label = { Text("रिमाइंडर का नाम / Title *") },
-                placeholder = { Text("जैसे: सुबह का टेस्ट, दवा लेनी है") },
+                label = { Text("रिमाइंडर का नाम") },
+                placeholder = { Text("जैसे: दवा लेनी है, मीटिंग") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -130,7 +130,7 @@ fun AddEditReminderScreen(
                         Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text("तारीख (Date)", style = MaterialTheme.typography.labelSmall)
+                            Text("तारीख", style = MaterialTheme.typography.labelSmall)
                             Text(dateText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
@@ -162,7 +162,7 @@ fun AddEditReminderScreen(
                         Icon(Icons.Default.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text("समय (Time)", style = MaterialTheme.typography.labelSmall)
+                            Text("समय", style = MaterialTheme.typography.labelSmall)
                             Text(timeText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
@@ -170,7 +170,7 @@ fun AddEditReminderScreen(
             }
 
             // Category Selector
-            Text("कैटेगरी चुनें (Category):", fontWeight = FontWeight.Bold)
+            Text("कैटेगरी:", fontWeight = FontWeight.Bold)
             var categoryExpanded by remember { mutableStateOf(false) }
             val currentCategoryEnum = try { ReminderCategory.valueOf(selectedCategory) } catch (e: Exception) { ReminderCategory.PERSONAL }
 
@@ -179,7 +179,7 @@ fun AddEditReminderScreen(
                 onExpandedChange = { categoryExpanded = !categoryExpanded }
             ) {
                 OutlinedTextField(
-                    value = "${currentCategoryEnum.displayNameHindi} (${currentCategoryEnum.displayNameEnglish})",
+                    value = currentCategoryEnum.displayNameHindi,
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
@@ -194,7 +194,7 @@ fun AddEditReminderScreen(
                 ) {
                     ReminderCategory.entries.forEach { cat ->
                         DropdownMenuItem(
-                            text = { Text("${cat.displayNameHindi} / ${cat.displayNameEnglish}") },
+                            text = { Text(cat.displayNameHindi) },
                             onClick = {
                                 selectedCategory = cat.name
                                 categoryExpanded = false
@@ -205,7 +205,7 @@ fun AddEditReminderScreen(
             }
 
             // Repeat Options
-            Text("रिपीट (Repeat Type):", fontWeight = FontWeight.Bold)
+            Text("पुनरावृत्ति:", fontWeight = FontWeight.Bold)
             var repeatExpanded by remember { mutableStateOf(false) }
             val currentRepeatEnum = try { RepeatType.valueOf(selectedRepeat) } catch (e: Exception) { RepeatType.ONCE }
 
@@ -214,7 +214,7 @@ fun AddEditReminderScreen(
                 onExpandedChange = { repeatExpanded = !repeatExpanded }
             ) {
                 OutlinedTextField(
-                    value = "${currentRepeatEnum.labelHindi} (${currentRepeatEnum.labelEnglish})",
+                    value = currentRepeatEnum.labelHindi,
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = repeatExpanded) },
@@ -229,7 +229,7 @@ fun AddEditReminderScreen(
                 ) {
                     RepeatType.entries.forEach { rep ->
                         DropdownMenuItem(
-                            text = { Text("${rep.labelHindi} / ${rep.labelEnglish}") },
+                            text = { Text(rep.labelHindi) },
                             onClick = {
                                 selectedRepeat = rep.name
                                 repeatExpanded = false
@@ -240,12 +240,12 @@ fun AddEditReminderScreen(
             }
 
             // Custom Voice Script
-            Text("AI वॉइस अनाउंसमेंट टेक्स्ट:", fontWeight = FontWeight.Bold)
+            Text("AI आवाज़ संदेश:", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = voiceScript,
                 onValueChange = { voiceScript = it },
                 label = { Text("अलार्म बजने पर AI यह बोलेगा") },
-                placeholder = { Text("$userName जी, उठ जाइए। आज सुबह 6 बजे आपका टेस्ट है। Best of Luck.") },
+                placeholder = { Text("समय हो गया है। अपना काम कर लें।") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 minLines = 2

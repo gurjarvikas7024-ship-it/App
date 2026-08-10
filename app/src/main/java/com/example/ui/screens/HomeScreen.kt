@@ -61,7 +61,7 @@ fun HomeScreen(
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
-                            placeholder = { Text("खोजें (Search)...") },
+                            placeholder = { Text("खोजें...") },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -186,7 +186,7 @@ fun HomeScreen(
                         onClick = { onSelectTab(tab) },
                         text = {
                             Text(
-                                text = "${tab.labelHindi} (${tab.labelEnglish})",
+                                text = if (uiState.language == "hi") tab.labelHindi else tab.labelEnglish,
                                 fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -198,7 +198,7 @@ fun HomeScreen(
 
             // Category Chips Row
             Text(
-                text = "कैटेगरी के अनुसार छांटें:",
+                text = if (uiState.language == "hi") "कैटेगरी:" else "Category:",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
@@ -212,14 +212,14 @@ fun HomeScreen(
                     FilterChip(
                         selected = selectedCategory == null,
                         onClick = { onSelectCategory(null) },
-                        label = { Text("सभी (All)") }
+                        label = { Text(if (uiState.language == "hi") "सभी" else "All") }
                     )
                 }
                 items(ReminderCategory.entries) { category ->
                     FilterChip(
                         selected = selectedCategory == category.name,
                         onClick = { onSelectCategory(category.name) },
-                        label = { Text("${category.displayNameHindi} / ${category.displayNameEnglish}") }
+                        label = { Text(if (uiState.language == "hi") category.displayNameHindi else category.displayNameEnglish) }
                     )
                 }
             }

@@ -10,49 +10,29 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = IndigoLight,
-    onPrimary = IndigoDark,
-    primaryContainer = IndigoPrimary,
-    onPrimaryContainer = IndigoLight,
-    secondary = PurpleSecondary,
-    tertiary = AmberAccent,
-    background = DarkSurface,
-    surface = DarkSurfaceVariant,
-    onBackground = LightSurface,
-    onSurface = LightSurface
-)
-
 private val LightColorScheme = lightColorScheme(
-    primary = IndigoPrimary,
+    primary = BluePrimary,
     onPrimary = LightSurface,
-    primaryContainer = IndigoLight,
-    onPrimaryContainer = IndigoDark,
+    primaryContainer = BlueLight,
+    onPrimaryContainer = BlueDark,
     secondary = PurpleSecondary,
     tertiary = AmberAccent,
-    background = LightSurface,
-    surface = LightSurfaceVariant,
-    onBackground = DarkSurface,
-    onSurface = DarkSurface
+    background = LightBackground,
+    surface = LightSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary,
+    onSurfaceVariant = TextSecondary
 )
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = true,
+  darkTheme: Boolean = false,
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
-  val colorScheme =
-    when {
-      dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-      }
-
-      darkTheme -> DarkColorScheme
-      else -> LightColorScheme
-    }
+  // Always use bright, soft, clean light theme as requested (no black/dark surfaces)
+  val colorScheme = LightColorScheme
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

@@ -18,9 +18,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 enum class HomeFilterTab(val labelHindi: String, val labelEnglish: String) {
-    TODAY("आज के", "Today"),
-    UPCOMING("आने वाले", "Upcoming"),
-    MISSED("Missed", "Missed"),
+    TODAY("आज", "Today"),
+    UPCOMING("आगामी", "Upcoming"),
+    MISSED("छूट गए", "Missed"),
     COMPLETED("पूरे हुए", "Completed")
 }
 

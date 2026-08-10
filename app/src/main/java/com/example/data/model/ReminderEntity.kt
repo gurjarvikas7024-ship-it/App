@@ -12,7 +12,7 @@ enum class ReminderCategory(val displayNameHindi: String, val displayNameEnglish
     BIRTHDAY("जन्मदिन", "Birthday", "Cake"),
     EXERCISE("व्यायाम", "Exercise", "FitnessCenter"),
     WATER("पानी", "Water", "WaterDrop"),
-    PRAYER("पूजा / प्रार्थना", "Prayer", "SelfImprovement"),
+    PRAYER("पूजा", "Prayer", "SelfImprovement"),
     PERSONAL("व्यक्तिगत", "Personal", "Person")
 }
 
