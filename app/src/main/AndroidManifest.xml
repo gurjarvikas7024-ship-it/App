@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -22,7 +23,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication"
@@ -35,14 +36,14 @@
         </activity>
 
         <activity
-            android:name=".ui.alarm.AlarmActivity"
+            android:name="com.example.ui.alarm.AlarmActivity"
             android:exported="false"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
             android:theme="@style/Theme.MyApplication" />
 
         <receiver
-            android:name=".receiver.ReminderReceiver"
+            android:name="com.example.receiver.ReminderReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.example.ACTION_TRIGGER_REMINDER" />
@@ -50,7 +51,7 @@
         </receiver>
 
         <receiver
-            android:name=".receiver.BootReceiver"
+            android:name="com.example.receiver.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
