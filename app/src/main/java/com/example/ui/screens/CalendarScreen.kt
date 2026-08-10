@@ -73,7 +73,7 @@ fun CalendarScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("कैलेंडर") },
+                title = { Text("Calendar", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -193,7 +193,7 @@ fun CalendarScreen(
 
             // Reminders list for selected date
             Text(
-                text = "चुनी गई तारीख के रिमाइंडर (${remindersForDate.size}):",
+                text = "Reminders for Selected Date (${remindersForDate.size}):",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -207,7 +207,7 @@ fun CalendarScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("इस तारीख को कोई रिमाइंडर नहीं है।", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No reminders scheduled for this date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -215,7 +215,7 @@ fun CalendarScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     items(remindersForDate, key = { it.id }) { reminder ->
-                        ReminderCardItem(
+                        PhotoStyleReminderCard(
                             reminder = reminder,
                             onToggleCompleted = { onToggleCompleted(reminder.id) },
                             onDelete = { onDeleteReminder(reminder.id) },

@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
-import com.example.data.model.ReminderCategory
 import com.example.data.model.ReminderEntity
 import com.example.data.model.ReminderStatus
 import com.example.data.preferences.UserPreferencesRepository
@@ -14,23 +13,25 @@ import com.example.service.GeminiReminderService
 import com.example.service.ParsedReminderResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.*
 
-enum class HomeFilterTab(val labelHindi: String, val labelEnglish: String) {
-    TODAY("आज", "Today"),
-    UPCOMING("आगामी", "Upcoming"),
-    MISSED("छूट गए", "Missed"),
-    COMPLETED("पूरे हुए", "Completed")
+enum class HomeFilterTab(val labelEnglish: String) {
+    TODAY("Today"),
+    UPCOMING("Upcoming"),
+    MISSED("Missed"),
+    COMPLETED("Completed")
 }
 
-data class Tuple5<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)
+data class UserVoice(val gender: String, val preset: String)
+data class UserBasic(val name: String, val isPremium: Boolean, val language: String, val voice: UserVoice, val isLoggedIn: Boolean)
+data class UserExtra(val email: String, val provider: String, val onboarding: Boolean, val darkMode: Boolean?, val activeCount: Int)
 
 data class UiState(
     val userName: String = "User",
     val isPremium: Boolean = false,
-    val language: String = "hi",
+    val language: String = "en",
     val voiceGender: String = "FEMALE",
+    val voicePreset: String = "Studio Female",
     val isLoggedIn: Boolean = false,
     val userEmail: String = "user@example.com",
     val loginProvider: String = "GUEST",
@@ -56,20 +57,21 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow<String?>(null)
-    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
-
     private val _selectedDateMillis = MutableStateFlow<Long>(System.currentTimeMillis())
     val selectedDateMillis: StateFlow<Long> = _selectedDateMillis.asStateFlow()
+
+    private val voiceSettingsFlow = combine(userPrefs.voiceGenderFlow, userPrefs.voicePresetFlow) { gender, preset ->
+        UserVoice(gender, preset)
+    }
 
     private val userBasicState = combine(
         userPrefs.userNameFlow,
         userPrefs.isPremiumFlow,
         userPrefs.languageFlow,
-        userPrefs.voiceGenderFlow,
+        voiceSettingsFlow,
         userPrefs.isLoggedInFlow
     ) { name, premium, lang, voice, loggedIn ->
-        Tuple5(name, premium, lang, voice, loggedIn)
+        UserBasic(name, premium, lang, voice, loggedIn)
     }
 
     private val userExtraState = combine(
@@ -79,7 +81,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         userPrefs.isDarkModeFlow,
         repository.activeCount
     ) { email, provider, onboarding, darkMode, activeCount ->
-        Tuple5(email, provider, onboarding, darkMode, activeCount)
+        UserExtra(email, provider, onboarding, darkMode, activeCount)
     }
 
     val uiState: StateFlow<UiState> = combine(
@@ -87,26 +89,25 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         userExtraState
     ) { basic, extra ->
         UiState(
-            userName = basic.a,
-            isPremium = basic.b,
-            language = basic.c,
-            voiceGender = basic.d,
-            isLoggedIn = basic.e,
-            userEmail = extra.a,
-            loginProvider = extra.b,
-            isOnboardingDone = extra.c,
-            isDarkMode = extra.d,
-            activeReminderCount = extra.e
+            userName = basic.name,
+            isPremium = basic.isPremium,
+            language = basic.language,
+            voiceGender = basic.voice.gender,
+            voicePreset = basic.voice.preset,
+            isLoggedIn = basic.isLoggedIn,
+            userEmail = extra.email,
+            loginProvider = extra.provider,
+            isOnboardingDone = extra.onboarding,
+            isDarkMode = extra.darkMode,
+            activeReminderCount = extra.activeCount
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState())
 
     val allReminders: StateFlow<List<ReminderEntity>> = combine(
         repository.allReminders,
         _selectedTab,
-        _searchQuery,
-        _selectedCategory
-    ) { list, tab, query, category ->
-        val now = System.currentTimeMillis()
+        _searchQuery
+    ) { list, tab, query ->
         val cal = Calendar.getInstance()
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
@@ -128,10 +129,6 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             HomeFilterTab.COMPLETED -> list.filter {
                 it.status == ReminderStatus.COMPLETED.name
             }
-        }
-
-        if (!category.isNullOrEmpty()) {
-            filtered = filtered.filter { it.category == category }
         }
 
         if (query.isNotBlank()) {
@@ -167,10 +164,6 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         _searchQuery.value = query
     }
 
-    fun selectCategory(category: String?) {
-        _selectedCategory.value = if (_selectedCategory.value == category) null else category
-    }
-
     fun setSelectedDate(dateMillis: Long) {
         _selectedDateMillis.value = dateMillis
     }
@@ -188,10 +181,17 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setVoiceSettings(language: String, gender: String) {
+    fun setVoiceSettings(language: String, gender: String, preset: String = "Studio Female") {
         viewModelScope.launch {
             userPrefs.setLanguage(language)
             userPrefs.setVoiceGender(gender)
+            userPrefs.setVoicePreset(preset)
+        }
+    }
+
+    fun setVoicePreset(preset: String) {
+        viewModelScope.launch {
+            userPrefs.setVoicePreset(preset)
         }
     }
 
@@ -236,10 +236,9 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
                     title = result.title,
                     description = userPrompt,
                     timeMillis = cal.timeInMillis,
-                    category = result.category,
                     repeatType = result.repeatType,
                     customVoiceScript = result.voiceGreeting.ifEmpty {
-                        "$name जी, आपका रिमाइंडर: ${result.title}"
+                        "Hello $name, it's time for your reminder: ${result.title}"
                     }
                 )
                 onComplete(reminder)

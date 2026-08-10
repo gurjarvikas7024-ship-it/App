@@ -22,6 +22,7 @@ class AlarmScheduler(private val context: Context) {
             putExtra(ReminderReceiver.EXTRA_REMINDER_ID, reminder.id)
             putExtra(ReminderReceiver.EXTRA_REMINDER_TITLE, reminder.title)
             putExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT, reminder.customVoiceScript)
+            putExtra(ReminderReceiver.EXTRA_REMINDER_PRESET, reminder.voicePreset)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

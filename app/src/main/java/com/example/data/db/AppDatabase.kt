@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.dao.ReminderDao
-import com.example.data.model.ReminderCategory
 import com.example.data.model.ReminderEntity
 import com.example.data.model.RepeatType
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +15,7 @@ import java.util.Calendar
 
 @Database(
     entities = [ReminderEntity::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -56,20 +55,18 @@ abstract class AppDatabase : RoomDatabase() {
                                     }
 
                                     val mock1 = ReminderEntity(
-                                        title = "रात को गरम पानी पीना है",
-                                        description = "सेहत के लिए गरम पानी पीना याद रखें",
+                                        title = "Drink Warm Water",
+                                        description = "Stay hydrated and drink a glass of warm water",
                                         timeMillis = calToday.timeInMillis.coerceAtLeast(now + 3600000),
-                                        category = ReminderCategory.WATER.name,
                                         repeatType = RepeatType.DAILY.name,
-                                        customVoiceScript = "जी, रात का गरम पानी पीने का समय हो गया है।"
+                                        customVoiceScript = "Hello! It's time to drink your evening glass of warm water."
                                     )
                                     val mock2 = ReminderEntity(
-                                        title = "सुबह की सैर और एक्सरसाइज",
-                                        description = "30 मिनट वॉक और योग",
+                                        title = "Morning Walk & Yoga",
+                                        description = "30 minutes light exercise and stretching",
                                         timeMillis = calTomorrow.timeInMillis,
-                                        category = ReminderCategory.EXERCISE.name,
                                         repeatType = RepeatType.DAILY.name,
-                                        customVoiceScript = "सुप्रभात! सुबह की वॉक और योग का समय हो गया है।"
+                                        customVoiceScript = "Good morning! Time for your morning walk and yoga session."
                                     )
                                     dao.insertReminder(mock1)
                                     dao.insertReminder(mock2)

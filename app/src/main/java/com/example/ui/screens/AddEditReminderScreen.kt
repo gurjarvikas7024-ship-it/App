@@ -2,9 +2,9 @@ package com.example.ui.screens
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,9 +18,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.ReminderCategory
 import com.example.data.model.ReminderEntity
 import com.example.data.model.RepeatType
+import com.example.service.TTSManager
+import com.example.ui.theme.OrangeAccent
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,16 +29,37 @@ import java.util.*
 @Composable
 fun AddEditReminderScreen(
     userName: String,
-    existingReminder: ReminderEntity? = null,
+    existingReminder: ReminderEntity?,
     onBack: () -> Unit,
     onSave: (ReminderEntity) -> Unit
 ) {
     val context = LocalContext.current
+
     var title by remember { mutableStateOf(existingReminder?.title ?: "") }
     var description by remember { mutableStateOf(existingReminder?.description ?: "") }
-    var selectedCategory by remember { mutableStateOf(existingReminder?.category ?: ReminderCategory.PERSONAL.name) }
-    var selectedRepeat by remember { mutableStateOf(existingReminder?.repeatType ?: RepeatType.ONCE.name) }
-    var voiceScript by remember { mutableStateOf(existingReminder?.customVoiceScript ?: "") }
+    var customScript by remember { mutableStateOf(existingReminder?.customVoiceScript ?: "") }
+    var repeatType by remember { mutableStateOf(existingReminder?.repeatType ?: RepeatType.ONCE.name) }
+    var isVoiceEnabled by remember { mutableStateOf(existingReminder?.isVoiceEnabled ?: true) }
+    var selectedVoicePreset by remember { mutableStateOf(existingReminder?.voicePreset ?: "Jethalal") }
+
+    var ttsManager by remember { mutableStateOf<TTSManager?>(null) }
+
+    DisposableEffect(Unit) {
+        val manager = TTSManager(context)
+        ttsManager = manager
+        onDispose {
+            manager.shutdown()
+        }
+    }
+
+    val characterOptions = listOf(
+        "Jethalal" to "TMKOC",
+        "Motu" to "Motu Patlu",
+        "Patlu" to "Motu Patlu",
+        "Daya Bhabhi" to "TMKOC",
+        "Inspector Daya" to "CID",
+        "Studio Female" to "Standard"
+    )
 
     val calendar = remember {
         Calendar.getInstance().apply {
@@ -49,25 +71,48 @@ fun AddEditReminderScreen(
         }
     }
 
-    var selectedTimeMillis by remember { mutableLongStateOf(calendar.timeInMillis) }
-
-    val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH) }
-    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.ENGLISH) }
-
-    var dateText by remember { mutableStateOf(dateFormat.format(calendar.time)) }
-    var timeText by remember { mutableStateOf(timeFormat.format(calendar.time)) }
-
-    fun updateVoiceScriptDefault() {
-        if (voiceScript.isBlank()) {
-            val namePrefix = if (userName.isBlank() || userName == "User") "" else "$userName जी, "
-            voiceScript = "${namePrefix}उठ जाइए। आपका ${title.ifBlank { "रिमाइंडर" }} का समय हो गया है।"
-        }
+    var selectedDateText by remember {
+        mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(calendar.time))
     }
+    var selectedTimeText by remember {
+        mutableStateOf(SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(calendar.time))
+    }
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, month)
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            selectedDateText = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(calendar.time)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hourOfDay, minute ->
+            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+            calendar.set(Calendar.MINUTE, minute)
+            calendar.set(Calendar.SECOND, 0)
+            selectedTimeText = SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(calendar.time)
+        },
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+        false
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existingReminder == null) "नया रिमाइंडर" else "संपादित करें") },
+                title = {
+                    Text(
+                        if (existingReminder == null) "New Reminder" else "Edit Reminder",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -80,217 +125,164 @@ fun AddEditReminderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Title Input
+            // Reminder Title Input
             OutlinedTextField(
                 value = title,
-                onValueChange = {
-                    title = it
-                    updateVoiceScriptDefault()
-                },
-                label = { Text("रिमाइंडर का नाम") },
-                placeholder = { Text("जैसे: दवा लेनी है, मीटिंग") },
+                onValueChange = { title = it },
+                label = { Text("Reminder Title *") },
+                placeholder = { Text("e.g. Priya ka birthday - gift order karna") },
+                leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp)
             )
 
-            // Date and Time Pickers
+            // Date & Time Selectors Row
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedCard(
-                    onClick = {
-                        val dpd = DatePickerDialog(
-                            context,
-                            { _, year, month, day ->
-                                calendar.set(Calendar.YEAR, year)
-                                calendar.set(Calendar.MONTH, month)
-                                calendar.set(Calendar.DAY_OF_MONTH, day)
-                                selectedTimeMillis = calendar.timeInMillis
-                                dateText = dateFormat.format(calendar.time)
-                            },
-                            calendar.get(Calendar.YEAR),
-                            calendar.get(Calendar.MONTH),
-                            calendar.get(Calendar.DAY_OF_MONTH)
-                        )
-                        dpd.show()
-                    },
+                OutlinedButton(
+                    onClick = { datePickerDialog.show() },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text("तारीख", style = MaterialTheme.typography.labelSmall)
-                            Text(dateText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
+                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(selectedDateText, fontSize = 13.sp)
                 }
 
-                OutlinedCard(
-                    onClick = {
-                        val tpd = TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                calendar.set(Calendar.MINUTE, minute)
-                                selectedTimeMillis = calendar.timeInMillis
-                                timeText = timeFormat.format(calendar.time)
-                            },
-                            calendar.get(Calendar.HOUR_OF_DAY),
-                            calendar.get(Calendar.MINUTE),
-                            false
-                        )
-                        tpd.show()
-                    },
+                OutlinedButton(
+                    onClick = { timePickerDialog.show() },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text("समय", style = MaterialTheme.typography.labelSmall)
-                            Text(timeText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
+                    Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(selectedTimeText, fontSize = 13.sp)
                 }
             }
 
-            // Category Selector
-            Text("कैटेगरी:", fontWeight = FontWeight.Bold)
-            var categoryExpanded by remember { mutableStateOf(false) }
-            val currentCategoryEnum = try { ReminderCategory.valueOf(selectedCategory) } catch (e: Exception) { ReminderCategory.PERSONAL }
-
-            ExposedDropdownMenuBox(
-                expanded = categoryExpanded,
-                onExpandedChange = { categoryExpanded = !categoryExpanded }
-            ) {
-                OutlinedTextField(
-                    value = currentCategoryEnum.displayNameHindi,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false }
+            // Character Voice Choice (Jethalal, Motu, Patlu, Daya Bhabhi, Inspector Daya)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Select Character Voice:", fontWeight = FontWeight.Bold)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    ReminderCategory.entries.forEach { cat ->
-                        DropdownMenuItem(
-                            text = { Text(cat.displayNameHindi) },
-                            onClick = {
-                                selectedCategory = cat.name
-                                categoryExpanded = false
-                            }
+                    items(characterOptions) { (name, tag) ->
+                        val isSelected = selectedVoicePreset == name
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedVoicePreset = name },
+                            label = { Text("$name ($tag)", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (isSelected) Icons.Default.VolumeUp else Icons.Default.RecordVoiceOver,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = OrangeAccent,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
                     }
+                }
+
+                // Test Character Voice Button
+                OutlinedButton(
+                    onClick = {
+                        val textToSpeak = if (title.isNotBlank()) title else "Priya ka birthday - gift order karna"
+                        ttsManager?.speak(textToSpeak, selectedVoicePreset)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OrangeAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Suno '$selectedVoicePreset' ki voice me")
                 }
             }
 
             // Repeat Options
-            Text("पुनरावृत्ति:", fontWeight = FontWeight.Bold)
-            var repeatExpanded by remember { mutableStateOf(false) }
-            val currentRepeatEnum = try { RepeatType.valueOf(selectedRepeat) } catch (e: Exception) { RepeatType.ONCE }
-
-            ExposedDropdownMenuBox(
-                expanded = repeatExpanded,
-                onExpandedChange = { repeatExpanded = !repeatExpanded }
+            Text("Repeat Schedule:", fontWeight = FontWeight.Bold)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
-                    value = currentRepeatEnum.labelHindi,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = repeatExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = repeatExpanded,
-                    onDismissRequest = { repeatExpanded = false }
-                ) {
-                    RepeatType.entries.forEach { rep ->
-                        DropdownMenuItem(
-                            text = { Text(rep.labelHindi) },
-                            onClick = {
-                                selectedRepeat = rep.name
-                                repeatExpanded = false
-                            }
-                        )
-                    }
+                RepeatType.entries.filter { it != RepeatType.CUSTOM }.forEach { type ->
+                    FilterChip(
+                        selected = repeatType == type.name,
+                        onClick = { repeatType = type.name },
+                        label = { Text(type.labelEnglish, fontSize = 12.sp) }
+                    )
                 }
             }
 
-            // Custom Voice Script
-            Text("AI आवाज़ संदेश:", fontWeight = FontWeight.Bold)
+            // AI Voice Announcement Script Input (Optional Override)
             OutlinedTextField(
-                value = voiceScript,
-                onValueChange = { voiceScript = it },
-                label = { Text("अलार्म बजने पर AI यह बोलेगा") },
-                placeholder = { Text("समय हो गया है। अपना काम कर लें।") },
+                value = customScript,
+                onValueChange = { customScript = it },
+                label = { Text("Custom Script (Optional)") },
+                placeholder = { Text("e.g. Gift order karna mat bhoolna!") },
+                leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                minLines = 2
+                shape = RoundedCornerShape(16.dp)
             )
 
-            // Additional Notes
+            // Notes / Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("अतिरिक्त नोट्स (Optional Description)") },
+                label = { Text("Notes (Optional)") },
+                placeholder = { Text("Add additional details...") },
+                leadingIcon = { Icon(Icons.Default.Notes, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                minLines = 2
+                minLines = 2,
+                shape = RoundedCornerShape(16.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Save Button
+            // Save Reminder Button
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        val finalScript = voiceScript.ifBlank {
-                            "$userName जी! आपका रिमाइंडर: $title"
-                        }
-                        val reminder = ReminderEntity(
-                            id = existingReminder?.id ?: 0L,
-                            title = title,
-                            description = description,
-                            timeMillis = selectedTimeMillis,
-                            category = selectedCategory,
-                            repeatType = selectedRepeat,
-                            customVoiceScript = finalScript
+                        val reminderToSave = ReminderEntity(
+                            id = existingReminder?.id ?: 0,
+                            title = title.trim(),
+                            description = description.trim(),
+                            timeMillis = calendar.timeInMillis,
+                            repeatType = repeatType,
+                            isVoiceEnabled = isVoiceEnabled,
+                            voicePreset = selectedVoicePreset,
+                            customVoiceScript = if (customScript.isNotBlank()) customScript.trim()
+                            else title.trim(),
+                            status = existingReminder?.status ?: "PENDING"
                         )
-                        onSave(reminder)
+                        onSave(reminderToSave)
                     }
                 },
                 enabled = title.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent)
             ) {
-                Icon(Icons.Default.Check, contentDescription = null)
+                Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("रिमाइंडर सेव करें", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (existingReminder == null) "Save Reminder" else "Update Reminder",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

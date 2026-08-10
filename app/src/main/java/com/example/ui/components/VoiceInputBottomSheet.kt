@@ -34,10 +34,19 @@ fun VoiceInputBottomSheet(
     onSaveReminder: (ReminderEntity) -> Unit
 ) {
     var textInput by remember { mutableStateOf("") }
+    var selectedCharacterVoice by remember { mutableStateOf("Jethalal") }
     var isRecording by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var previewReminder by remember { mutableStateOf<ReminderEntity?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val characterOptions = listOf(
+        "Jethalal" to "TMKOC",
+        "Motu" to "Motu Patlu",
+        "Patlu" to "Motu Patlu",
+        "Daya Bhabhi" to "TMKOC",
+        "Inspector Daya" to "CID"
+    )
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -51,10 +60,10 @@ fun VoiceInputBottomSheet(
     )
 
     val samplePrompts = listOf(
-        "20 जनवरी सुबह 6 बजे टेस्ट है।",
-        "शाम 7 बजे खाना बनाना है।",
-        "रात 10 बजे दवा खानी है।",
-        "कल सुबह 5 बजे मुझे उठा देना।"
+        "Test on Jan 20 at 6 AM",
+        "Cook dinner at 7 PM",
+        "Take medicine at 10 PM",
+        "Wake me up tomorrow at 5 AM"
     )
 
     ModalBottomSheet(
@@ -80,14 +89,14 @@ fun VoiceInputBottomSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "याद AI Voice & Smart Reminder",
+                    text = "Yaad AI Voice & Smart Reminder",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Text(
-                text = "बोलकर या लिखकर अपना रिमाइंडर बनाएं:",
+                text = "Speak or type your reminder:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -123,7 +132,7 @@ fun VoiceInputBottomSheet(
             }
 
             Text(
-                text = if (isRecording) "सुन रहे हैं... बोलिए!" else "माइक पर टैप करके बोलें",
+                text = if (isRecording) "Listening... Speak now!" else "Tap microphone to speak",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -135,7 +144,7 @@ fun VoiceInputBottomSheet(
             OutlinedTextField(
                 value = textInput,
                 onValueChange = { textInput = it },
-                placeholder = { Text("उदाहरण: 20 जनवरी सुबह 6 बजे टेस्ट है") },
+                placeholder = { Text("e.g. Test on January 20 at 6 AM") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 trailingIcon = {
@@ -149,9 +158,38 @@ fun VoiceInputBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Character Voice Choice
+            Text(
+                text = "Voice Character:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(characterOptions) { (charName, tag) ->
+                    val isSelected = selectedCharacterVoice == charName
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedCharacterVoice = charName },
+                        label = { Text("$charName ($tag)", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Default.RecordVoiceOver, contentDescription = null, modifier = Modifier.size(14.dp))
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Sample Chips
             Text(
-                text = "सुझाव (Tap to try):",
+                text = "Suggestions (Tap to try):",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.Start)
@@ -181,7 +219,7 @@ fun VoiceInputBottomSheet(
 
             if (isProcessing) {
                 CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-                Text("AI समय और तारीख समझ रहा है...", style = MaterialTheme.typography.bodyMedium)
+                Text("AI is processing date and time...", style = MaterialTheme.typography.bodyMedium)
             } else if (previewReminder != null) {
                 // AI Result Preview Card
                 Card(
@@ -195,12 +233,11 @@ fun VoiceInputBottomSheet(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("AI द्वारा पहचाना गया रिमाइंडर:", fontWeight = FontWeight.Bold)
+                            Text("AI Detected Reminder:", fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("शीर्षक: ${previewReminder?.title}", fontWeight = FontWeight.Medium)
-                        Text("श्रेणी: ${previewReminder?.category}")
-                        Text("अनाउंसमेंट: \"${previewReminder?.customVoiceScript}\"", style = MaterialTheme.typography.bodySmall)
+                        Text("Title: ${previewReminder?.title}", fontWeight = FontWeight.Medium)
+                        Text("Announcement: \"${previewReminder?.customVoiceScript}\"", style = MaterialTheme.typography.bodySmall)
 
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
@@ -213,7 +250,7 @@ fun VoiceInputBottomSheet(
                         ) {
                             Icon(Icons.Default.AlarmAdd, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("रिमाइंडर सेट करें")
+                            Text("Set Reminder")
                         }
                     }
                 }
@@ -226,9 +263,9 @@ fun VoiceInputBottomSheet(
                             onParseVoicePrompt(textInput) { reminder ->
                                 isProcessing = false
                                 if (reminder != null) {
-                                    previewReminder = reminder
+                                    previewReminder = reminder.copy(voicePreset = selectedCharacterVoice)
                                 } else {
-                                    errorMessage = "AI द्वारा रिमाइंडर समझने में त्रुटि हुई।"
+                                    errorMessage = "Error parsing reminder prompt with AI."
                                 }
                             }
                         }
@@ -241,7 +278,7 @@ fun VoiceInputBottomSheet(
                 ) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI से रिमाइंडर बनाएं", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Create AI Reminder", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

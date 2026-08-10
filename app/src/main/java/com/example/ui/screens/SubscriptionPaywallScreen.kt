@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AmberAccent
-import com.example.ui.theme.IndigoDark
 import com.example.ui.theme.IndigoPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +36,7 @@ fun SubscriptionPaywallScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("याद AI Premium") },
+                title = { Text("Yaad AI Premium", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
@@ -80,14 +78,14 @@ fun SubscriptionPaywallScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "अनलिमिटेड AI फीचर्स अनलॉक करें",
+                    text = "Unlock Unlimited AI Features",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "छात्रों, परिवार और काम के लिए प्रीमियम अनुभव",
+                    text = "Premium experience for students, work & productivity",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
@@ -102,19 +100,18 @@ fun SubscriptionPaywallScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        FeatureRow("अनलिमिटेड एक्टिव रिमाइंडर (Unlimited Reminders)")
-                        FeatureRow("अनलिमिटेड AI वॉइस रिमाइंडर (Unlimited AI Voice)")
-                        FeatureRow("क्लाउड बैकअप (Cloud Backup & Sync)")
-                        FeatureRow("फैमिली रिमाइंडर शेयरिंग (Family Sharing)")
-                        FeatureRow("विज्ञापन रहित अनुभव (No Ads)")
-                        FeatureRow("फुल स्क्रीन वॉइस अलार्म (Voice Announcements)")
+                        FeatureRow("Unlimited Active Reminders")
+                        FeatureRow("Unlimited AI Voice Parsing & Announcements")
+                        FeatureRow("Natural High-Definition Voice Presets")
+                        FeatureRow("100% Ad-Free Experience")
+                        FeatureRow("Full Screen Alarm Voice Alerts")
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // Plan Options
-                Text("प्लांस चुनें:", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
+                Text("Select Plan:", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -148,11 +145,11 @@ fun SubscriptionPaywallScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("मंथली प्लान (Monthly Plan)", fontWeight = FontWeight.Bold)
-                                Text("प्रति महीना ऑटो रीन्यू", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Monthly Plan", fontWeight = FontWeight.Bold)
+                                Text("Auto-renews monthly", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text("₹40 / महीना", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("$1.99 / mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -189,7 +186,7 @@ fun SubscriptionPaywallScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("इयरली प्लान (Yearly Plan)", fontWeight = FontWeight.Bold)
+                                    Text("Yearly Plan", fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         color = AmberAccent,
@@ -198,10 +195,10 @@ fun SubscriptionPaywallScreen(
                                         Text("BEST VALUE (38% OFF)", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
-                                Text("₹24.9 / महीना (₹299/वर्ष)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$0.99 / mo ($11.99/yr)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text("₹299 / वर्ष", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AmberAccent)
+                        Text("$11.99 / yr", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AmberAccent)
                     }
                 }
             }
@@ -222,7 +219,7 @@ fun SubscriptionPaywallScreen(
                 Icon(Icons.Default.Payment, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isCurrentlyPremium) "सब्सक्रिप्शन एक्टिव है (Subscribed)" else "Google Play Pay ₹${if (selectedPlan == "MONTHLY") "40" else "299"}",
+                    text = if (isCurrentlyPremium) "Currently Subscribed" else "Pay ${if (selectedPlan == "MONTHLY") "$1.99" else "$11.99"}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -237,9 +234,9 @@ fun SubscriptionPaywallScreen(
                 title = { Text("Google Play Billing") },
                 text = {
                     Column {
-                        Text("याद AI Premium Subscription (${if (selectedPlan == "MONTHLY") "₹40/mo" else "₹299/yr"})")
+                        Text("Yaad AI Premium Subscription (${if (selectedPlan == "MONTHLY") "$1.99/mo" else "$11.99/yr"})")
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("सुरक्षित गूगल प्ले बिलिंग के माध्यम से भुगतान किया जा रहा है...", style = MaterialTheme.typography.bodySmall)
+                        Text("Processing purchase securely via Google Play...", style = MaterialTheme.typography.bodySmall)
                     }
                 },
                 confirmButton = {
@@ -255,7 +252,7 @@ fun SubscriptionPaywallScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { showBillingDialog = false }) {
-                        Text("रद्द करें")
+                        Text("Cancel")
                     }
                 }
             )

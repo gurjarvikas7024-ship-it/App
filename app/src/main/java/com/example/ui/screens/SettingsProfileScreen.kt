@@ -1,9 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,16 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.service.TTSManager
 import com.example.ui.theme.AmberAccent
-import com.example.ui.theme.IndigoDark
-import com.example.ui.theme.IndigoPrimary
 import com.example.ui.viewmodel.UiState
+
+data class VoicePresetOption(
+    val name: String,
+    val description: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,28 +30,38 @@ fun SettingsProfileScreen(
     uiState: UiState,
     onBack: () -> Unit,
     onSaveName: (String) -> Unit,
-    onSetVoiceSettings: (String, String) -> Unit,
-    onSetDarkMode: (Boolean?) -> Unit,
+    onSaveVoiceSettings: (String, String, String) -> Unit,
+    onToggleDarkMode: (Boolean?) -> Unit,
     onOpenPaywall: () -> Unit
 ) {
     val context = LocalContext.current
-    var nameInput by remember { mutableStateOf(uiState.userName) }
-    var language by remember { mutableStateOf(uiState.language) }
-    var voiceGender by remember { mutableStateOf(uiState.voiceGender) }
-    var isTestingTTS by remember { mutableStateOf(false) }
+    var nameInput by remember(uiState.userName) { mutableStateOf(uiState.userName) }
+    var selectedPreset by remember(uiState.voicePreset) { mutableStateOf(uiState.voicePreset) }
 
-    val ttsManager = remember { TTSManager(context) }
+    val voicePresets = listOf(
+        VoicePresetOption("Jethalal", "TMKOC • 'Chai Piyo, Biscuit Khao!'", Icons.Default.Face),
+        VoicePresetOption("Motu", "Motu Patlu • 'Khali pet dimaag ki batti...'", Icons.Default.Fastfood),
+        VoicePresetOption("Patlu", "Motu Patlu • 'Ek super idea hai!'", Icons.Default.Lightbulb),
+        VoicePresetOption("Daya Bhabhi", "TMKOC • 'Hey Maa, Mataji!'", Icons.Default.RecordVoiceOver),
+        VoicePresetOption("Inspector Daya", "CID • 'Daya, darwaza tod do!'", Icons.Default.Security),
+        VoicePresetOption("Studio Female", "Crisp & Clear Standard", Icons.Default.VolumeUp),
+        VoicePresetOption("Executive Male", "Deep & Professional", Icons.Default.VoiceOverOff)
+    )
+
+    var ttsManager by remember { mutableStateOf<TTSManager?>(null) }
 
     DisposableEffect(Unit) {
+        val manager = TTSManager(context)
+        ttsManager = manager
         onDispose {
-            ttsManager.shutdown()
+            manager.shutdown()
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("सेटिंग्स") },
+                title = { Text("Settings & Voice Options", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -63,204 +74,154 @@ fun SettingsProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // User Profile Header Card
+            // User Profile Section
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(IndigoPrimary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = nameInput.ifBlank { "U" }.take(1).uppercase(),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column {
-                        Text(
-                            text = nameInput,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${uiState.userEmail} (${uiState.loginProvider})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        AssistChip(
-                            onClick = onOpenPaywall,
-                            label = {
-                                Text(
-                                    if (uiState.isPremium) "👑 Premium Active" else "Free Plan (5 Limit)",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = AmberAccent)
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Edit Profile Name
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("आपका नाम बदलें (Edit Name)", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = nameInput,
-                            onValueChange = { nameInput = it },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Button(
-                            onClick = { onSaveName(nameInput) },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("सेव")
-                        }
-                    }
+                    Text("Profile Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        label = { Text("Your Name") },
+                        placeholder = { Text("Enter your name") },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        trailingIcon = {
+                            if (nameInput != uiState.userName) {
+                                IconButton(onClick = { onSaveName(nameInput) }) {
+                                    Icon(Icons.Default.Check, contentDescription = "Save Name", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
+                    )
                 }
             }
 
-            // Voice & Speech Settings
+            // High-Definition AI Voice Profiles Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("AI की भाषा और आवाज़", fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = AmberAccent)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("AI Voice Presets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                     }
 
-                    Text("भाषा चुनें:", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = language == "hi",
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    voicePresets.forEach { preset ->
+                        val isSelected = selectedPreset == preset.name
+                        Card(
                             onClick = {
-                                language = "hi"
-                                onSetVoiceSettings(language, voiceGender)
+                                selectedPreset = preset.name
+                                onSaveVoiceSettings(
+                                    uiState.language,
+                                    if (preset.name.contains("Female")) "FEMALE" else "MALE",
+                                    preset.name
+                                )
                             },
-                            label = { Text("हिंदी") }
-                        )
-                        FilterChip(
-                            selected = language == "en",
-                            onClick = {
-                                language = "en"
-                                onSetVoiceSettings(language, voiceGender)
-                            },
-                            label = { Text("English") }
-                        )
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = {
+                                            selectedPreset = preset.name
+                                            onSaveVoiceSettings(
+                                                uiState.language,
+                                                if (preset.name.contains("Female")) "FEMALE" else "MALE",
+                                                preset.name
+                                            )
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(preset.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text(preset.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Icon(preset.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
                     }
 
-                    Text("आवाज़ चुनें:", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = voiceGender == "FEMALE",
-                            onClick = {
-                                voiceGender = "FEMALE"
-                                onSetVoiceSettings(language, voiceGender)
-                            },
-                            label = { Text("महिला") }
-                        )
-                        FilterChip(
-                            selected = voiceGender == "MALE",
-                            onClick = {
-                                voiceGender = "MALE"
-                                onSetVoiceSettings(language, voiceGender)
-                            },
-                            label = { Text("पुरुष") }
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(12.dp))
 
+                    // Test Voice Button
                     OutlinedButton(
                         onClick = {
-                            val sampleText = "$nameInput जी, आपकी आवाज़ और भाषा की सेटिंग सेव हो गई है!"
-                            ttsManager.speak(sampleText, voiceGender)
+                            val sampleText = "Priya ka birthday, gift order karna hai."
+                            ttsManager?.speak(sampleText, selectedPreset)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Default.VolumeUp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("आवाज़ टेस्ट करें")
+                        Text("Test Selected Voice")
                     }
                 }
             }
 
-            // Appearance Mode
+            // Subscription & Membership Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("थीम रंग", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "लाइट और साफ-सुथरा थीम (Light & Simple Mode Active)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            // Premium Plan Upgrade Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = AmberAccent)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("याद AI Premium Plan", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("• Unlimited Reminders & AI Voice Parsing\n• Cloud Backup & Restore\n• Family Reminder Sharing\n• No Ads & Priority Support")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = onOpenPaywall,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(if (uiState.isPremium) "Manage Subscription" else "₹40/महीना - अभी अपग्रेड करें")
+                        Column {
+                            Text("Account Status", fontWeight = FontWeight.Bold)
+                            Text(
+                                if (uiState.isPremium) "Premium Unlimited Subscriber" else "Free Plan (Max 5 active reminders)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (!uiState.isPremium) {
+                            Button(
+                                onClick = onOpenPaywall,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Upgrade")
+                            }
+                        }
                     }
                 }
             }

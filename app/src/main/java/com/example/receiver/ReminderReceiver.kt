@@ -17,6 +17,7 @@ class ReminderReceiver : BroadcastReceiver() {
         const val EXTRA_REMINDER_ID = "extra_reminder_id"
         const val EXTRA_REMINDER_TITLE = "extra_reminder_title"
         const val EXTRA_REMINDER_SCRIPT = "extra_reminder_script"
+        const val EXTRA_REMINDER_PRESET = "extra_reminder_preset"
         const val CHANNEL_ID = "yaad_ai_alarm_channel"
     }
 
@@ -24,12 +25,14 @@ class ReminderReceiver : BroadcastReceiver() {
         val id = intent.getLongExtra(EXTRA_REMINDER_ID, -1L)
         val title = intent.getStringExtra(EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
         val script = intent.getStringExtra(EXTRA_REMINDER_SCRIPT) ?: ""
+        val preset = intent.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_REMINDER_ID, id)
             putExtra(EXTRA_REMINDER_TITLE, title)
             putExtra(EXTRA_REMINDER_SCRIPT, script)
+            putExtra(EXTRA_REMINDER_PRESET, preset)
         }
 
         val fullScreenPendingIntent = PendingIntent.getActivity(

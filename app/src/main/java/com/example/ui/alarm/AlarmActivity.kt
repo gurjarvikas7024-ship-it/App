@@ -37,8 +37,6 @@ import com.example.receiver.ReminderReceiver
 import com.example.service.AlarmScheduler
 import com.example.service.TTSManager
 import com.example.ui.theme.AmberAccent
-import com.example.ui.theme.IndigoDark
-import com.example.ui.theme.IndigoPrimary
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,8 +55,9 @@ class AlarmActivity : ComponentActivity() {
         turnScreenOnAndKeyguard()
 
         val reminderId = intent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L)
-        val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE) ?: "रिमाइंडर अलार्म!"
+        val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
         val customScript = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT) ?: ""
+        val reminderPreset = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_PRESET) ?: ""
 
         // Sound & Vibration
         startAlarmEffects()
@@ -69,14 +68,15 @@ class AlarmActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val userPrefs = UserPreferencesRepository(applicationContext)
             val name = userPrefs.userNameFlow.first()
-            val gender = userPrefs.voiceGenderFlow.first()
+            val globalPreset = userPrefs.voicePresetFlow.first()
+            val activePreset = if (reminderPreset.isNotBlank()) reminderPreset else globalPreset
 
             val spokenText = if (customScript.isNotBlank()) customScript
-            else "$name जी, उठ जाइए। आपका रिमाइंडर $reminderTitle का समय हो गया है। Best of Luck."
+            else reminderTitle
 
             // Short delay so ringtone rings first then TTS speaks
             kotlinx.coroutines.delay(1000)
-            ttsManager?.speak(spokenText, gender)
+            ttsManager?.speak(spokenText, activePreset)
         }
 
         setContent {
@@ -221,7 +221,7 @@ fun AlarmFullScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "समय हो गया!",
+                    text = "Reminder Alert!",
                     style = MaterialTheme.typography.titleMedium,
                     color = AmberAccent,
                     fontWeight = FontWeight.Bold
@@ -280,7 +280,7 @@ fun AlarmFullScreenContent(
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("स्वीकार करें", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Dismiss Alarm", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 OutlinedButton(
@@ -292,7 +292,7 @@ fun AlarmFullScreenContent(
                 ) {
                     Icon(Icons.Default.Snooze, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("10 मिनट स्नूज़ करें", fontSize = 16.sp)
+                    Text("Snooze 10 Mins", fontSize = 16.sp)
                 }
             }
         }

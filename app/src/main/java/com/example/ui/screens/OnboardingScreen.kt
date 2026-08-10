@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,16 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.R
-import com.example.ui.theme.AmberAccent
-import com.example.ui.theme.IndigoDark
-import com.example.ui.theme.IndigoPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +25,7 @@ fun OnboardingScreen(
     onSaveUser: (String, String, String, Boolean, String, String) -> Unit
 ) {
     var nameInput by remember { mutableStateOf("User") }
-    var selectedLanguage by remember { mutableStateOf("hi") }
+    var selectedLanguage by remember { mutableStateOf("en") }
     var selectedVoiceGender by remember { mutableStateOf("FEMALE") }
     var authProvider by remember { mutableStateOf("GUEST") }
     var userEmail by remember { mutableStateOf("user@example.com") }
@@ -76,14 +69,14 @@ fun OnboardingScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "याद AI",
+                    text = "Yaad AI",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
 
                 Text(
-                    text = "आपका अपना स्मार्ट AI वॉइस अलार्म और रिमाइंडर",
+                    text = "Your Smart Offline AI Voice Alarm & Reminder",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -105,13 +98,13 @@ fun OnboardingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "आपका नाम क्या है?",
+                            text = "What is your name?",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            text = "अलार्म के समय AI आपको इसी नाम से पुकारेगा",
+                            text = "AI will address you by this name during alarm voice alerts",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 16.dp)
@@ -120,7 +113,7 @@ fun OnboardingScreen(
                         OutlinedTextField(
                             value = nameInput,
                             onValueChange = { nameInput = it },
-                            label = { Text("आपका नाम (e.g. Rahul)") },
+                            label = { Text("Your Name") },
                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -131,44 +124,13 @@ fun OnboardingScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Text(
-                            text = "लॉगिन का माध्यम चुनें:",
+                            text = "Select Account Mode:",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.align(Alignment.Start)
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
-
-                        // Auth Option Buttons
-                        OutlinedButton(
-                            onClick = { authProvider = "GOOGLE" },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (authProvider == "GOOGLE") MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                            )
-                        ) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Google Account से जारी रखें")
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        OutlinedButton(
-                            onClick = { authProvider = "PHONE" },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (authProvider == "PHONE") MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                            )
-                        ) {
-                            Icon(Icons.Default.Phone, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("मोबाइल नंबर (OTP) से लॉगिन")
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
 
                         OutlinedButton(
                             onClick = { authProvider = "GUEST" },
@@ -180,12 +142,12 @@ fun OnboardingScreen(
                         ) {
                             Icon(Icons.Default.PersonOutline, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("गेस्ट के रूप में शुरू करें")
+                            Text("Continue as Guest (100% Offline)")
                         }
                     }
                 }
             } else {
-                // Step 2: Language and Voice Gender Selection
+                // Step 2: Language and Voice Selection
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -199,14 +161,14 @@ fun OnboardingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "आवाज़ और भाषा चुनें",
+                            text = "Choose Language & AI Voice",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("पसंदीदा भाषा:", fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Start))
+                        Text("Preferred Language:", fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Start))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
@@ -214,24 +176,24 @@ fun OnboardingScreen(
                                 .padding(vertical = 8.dp)
                         ) {
                             FilterChip(
-                                selected = selectedLanguage == "hi",
-                                onClick = { selectedLanguage = "hi" },
-                                label = { Text("हिंदी (Hindi)") },
-                                leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FilterChip(
                                 selected = selectedLanguage == "en",
                                 onClick = { selectedLanguage = "en" },
                                 label = { Text("English") },
                                 leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) },
                                 modifier = Modifier.weight(1f)
                             )
+                            FilterChip(
+                                selected = selectedLanguage == "hi",
+                                onClick = { selectedLanguage = "hi" },
+                                label = { Text("Hindi (हिंदी)") },
+                                leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text("AI की आवाज़:", fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Start))
+                        Text("AI Voice Profile:", fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Start))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
@@ -241,14 +203,14 @@ fun OnboardingScreen(
                             FilterChip(
                                 selected = selectedVoiceGender == "FEMALE",
                                 onClick = { selectedVoiceGender = "FEMALE" },
-                                label = { Text("महिला (Female)") },
+                                label = { Text("Studio Female") },
                                 leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
                                 modifier = Modifier.weight(1f)
                             )
                             FilterChip(
                                 selected = selectedVoiceGender == "MALE",
                                 onClick = { selectedVoiceGender = "MALE" },
-                                label = { Text("पुरुष (Male)") },
+                                label = { Text("Executive Male") },
                                 leadingIcon = { Icon(Icons.Default.VoiceOverOff, contentDescription = null) },
                                 modifier = Modifier.weight(1f)
                             )
@@ -268,7 +230,7 @@ fun OnboardingScreen(
                     TextButton(onClick = { currentStep = 1 }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("पीछे जाएं")
+                        Text("Back")
                     }
                 } else {
                     Spacer(modifier = Modifier.width(1.dp))
@@ -286,7 +248,7 @@ fun OnboardingScreen(
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(if (currentStep == 1) "आगे बढ़ें" else "ऐप शुरू करें")
+                    Text(if (currentStep == 1) "Continue" else "Get Started")
                     Spacer(modifier = Modifier.width(6.dp))
                     Icon(Icons.Default.ArrowForward, contentDescription = null)
                 }

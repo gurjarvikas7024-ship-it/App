@@ -1,7 +1,6 @@
 package com.example.service
 
 import com.example.BuildConfig
-import com.example.data.model.ReminderCategory
 import com.example.data.model.RepeatType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +18,6 @@ data class ParsedReminderResult(
     val title: String,
     val dateString: String, // YYYY-MM-DD
     val timeString: String, // HH:mm
-    val category: String = "PERSONAL",
     val repeatType: String = "ONCE",
     val voiceGreeting: String = ""
 )
@@ -44,19 +42,18 @@ class GeminiReminderService {
         val currentTimeStr = sdf.format(Calendar.getInstance().time)
 
         val systemPrompt = """
-            You are Yaad AI, a smart Hindi & English AI reminder parser for an Android app.
+            You are Yaad AI, a smart AI reminder parser for an Android app.
             Today's current date and time is: $currentTimeStr.
             User's Name: $userName.
             
-            Extract the reminder details from user input and respond ONLY in valid raw JSON.
+            Extract the reminder details from the user prompt and respond ONLY in valid raw JSON.
             JSON structure must be:
             {
-              "title": "Short title in original language (e.g. 'टेस्ट', 'दवा खानी है')",
+              "title": "Short, clear reminder title in English (e.g. 'Team Sync Meeting', 'Take Medicine')",
               "dateString": "YYYY-MM-DD format based on current date",
               "timeString": "HH:mm format (24 hour format)",
-              "category": "One of: STUDY, MEDICINE, OFFICE, MEETING, SHOPPING, BIRTHDAY, EXERCISE, WATER, PRAYER, PERSONAL",
               "repeatType": "One of: ONCE, DAILY, WEEKLY, MONTHLY, YEARLY",
-              "voiceGreeting": "Warm respectful custom spoken message starting with user name e.g. '$userName जी, उठ जाइए। आज सुबह 6 बजे आपका टेस्ट है। Best of Luck.'"
+              "voiceGreeting": "Warm respectful custom spoken message starting with user name e.g. 'Hello $userName, it is time for your $userPrompt.'"
             }
         """.trimIndent()
 
@@ -99,7 +96,6 @@ class GeminiReminderService {
                         title = json.optString("title", userPrompt),
                         dateString = json.optString("dateString", ""),
                         timeString = json.optString("timeString", ""),
-                        category = json.optString("category", "PERSONAL"),
                         repeatType = json.optString("repeatType", "ONCE"),
                         voiceGreeting = json.optString("voiceGreeting", "")
                     )
@@ -132,27 +128,12 @@ class GeminiReminderService {
         val dateSdf = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
         val timeSdf = SimpleDateFormat("HH:mm", Locale.ENGLISH)
 
-        var category = ReminderCategory.PERSONAL.name
-        val lower = userPrompt.lowercase()
-        if (lower.contains("दवा") || lower.contains("medicine") || lower.contains("doctor")) {
-            category = ReminderCategory.MEDICINE.name
-        } else if (lower.contains("टेस्ट") || lower.contains("test") || lower.contains("exam") || lower.contains("पढ़ाई")) {
-            category = ReminderCategory.STUDY.name
-        } else if (lower.contains("खाना") || lower.contains("cook") || lower.contains("food")) {
-            category = ReminderCategory.PERSONAL.name
-        } else if (lower.contains("मीटिंग") || lower.contains("meeting")) {
-            category = ReminderCategory.MEETING.name
-        } else if (lower.contains("पानी") || lower.contains("water")) {
-            category = ReminderCategory.WATER.name
-        }
-
         return ParsedReminderResult(
-            title = userPrompt.take(30),
+            title = userPrompt.take(40),
             dateString = dateSdf.format(cal.time),
             timeString = timeSdf.format(cal.time),
-            category = category,
             repeatType = RepeatType.ONCE.name,
-            voiceGreeting = "$userName जी! आपका रिमाइंडर: $userPrompt. Best of luck!"
+            voiceGreeting = "Hello $userName, it's time for your reminder: $userPrompt."
         )
     }
 }

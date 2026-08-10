@@ -39,7 +39,6 @@ class MainActivity : ComponentActivity() {
             val allReminders by viewModel.allReminders.collectAsStateWithLifecycle()
             val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
             val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-            val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
             val selectedDateMillis by viewModel.selectedDateMillis.collectAsStateWithLifecycle()
             val remindersForSelectedDate by viewModel.remindersForSelectedDate.collectAsStateWithLifecycle()
 
@@ -95,10 +94,8 @@ class MainActivity : ComponentActivity() {
                                 reminders = allReminders,
                                 selectedTab = selectedTab,
                                 searchQuery = searchQuery,
-                                selectedCategory = selectedCategory,
                                 onSelectTab = { viewModel.selectTab(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                                onSelectCategory = { viewModel.selectCategory(it) },
                                 onOpenVoiceDialog = { showVoiceModal = true },
                                 onOpenAddReminder = {
                                     editingReminder = null
@@ -160,8 +157,8 @@ class MainActivity : ComponentActivity() {
                                 uiState = uiState,
                                 onBack = { navController.popBackStack() },
                                 onSaveName = { viewModel.saveUserName(it) },
-                                onSetVoiceSettings = { lang, voice -> viewModel.setVoiceSettings(lang, voice) },
-                                onSetDarkMode = { viewModel.setDarkMode(it) },
+                                onSaveVoiceSettings = { lang, voice, preset -> viewModel.setVoiceSettings(lang, voice, preset) },
+                                onToggleDarkMode = { viewModel.setDarkMode(it) },
                                 onOpenPaywall = { navController.navigate("paywall") }
                             )
                         }
