@@ -50,11 +50,19 @@ class ReminderReceiver : BroadcastReceiver() {
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setAutoCancel(true)
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(id.toInt(), notificationBuilder.build())
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            notificationManager?.notify(id.toInt(), notificationBuilder.build())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         // Launch full screen activity
-        context.startActivity(alarmIntent)
+        try {
+            context.startActivity(alarmIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun createNotificationChannel(context: Context) {

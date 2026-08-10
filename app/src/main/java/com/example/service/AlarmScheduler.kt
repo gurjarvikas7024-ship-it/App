@@ -11,9 +11,10 @@ import com.example.receiver.ReminderReceiver
 
 class AlarmScheduler(private val context: Context) {
 
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
 
     fun schedule(reminder: ReminderEntity) {
+        if (alarmManager == null) return
         if (reminder.timeMillis <= System.currentTimeMillis()) return
 
         val intent = Intent(context, ReminderReceiver::class.java).apply {
@@ -31,7 +32,14 @@ class AlarmScheduler(private val context: Context) {
         )
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    val alarmClockInfo = AlarmManager.AlarmClockInfo(reminder.timeMillis, pendingIntent)
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.timeMillis, pendingIntent)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val alarmClockInfo = AlarmManager.AlarmClockInfo(reminder.timeMillis, pendingIntent)
                 alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
             } else {
@@ -39,20 +47,30 @@ class AlarmScheduler(private val context: Context) {
             }
             Log.d("AlarmScheduler", "Alarm scheduled for ID ${reminder.id} at ${reminder.timeMillis}")
         } catch (e: Exception) {
-            Log.e("AlarmScheduler", "Failed to schedule alarm", e)
+            Log.e("AlarmScheduler", "Failed to schedule exact alarm, falling back to setAndAllowWhileIdle", e)
+            try {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.timeMillis, pendingIntent)
+            } catch (ex: Exception) {
+                Log.e("AlarmScheduler", "Fallback alarm scheduling also failed", ex)
+            }
         }
     }
 
     fun cancel(reminderId: Long) {
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            action = ReminderReceiver.ACTION_TRIGGER_REMINDER
+        if (alarmManager == null) return
+        try {
+            val intent = Intent(context, ReminderReceiver::class.java).apply {
+                action = ReminderReceiver.ACTION_TRIGGER_REMINDER
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                reminderId.toInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+        } catch (e: Exception) {
+            Log.e("AlarmScheduler", "Failed to cancel alarm", e)
         }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            reminderId.toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
     }
 }
