@@ -1,6 +1,6 @@
 {
-  "name": "Yaad AI - AI Smart Voice Reminder & Alarm",
-  "description": "AI-powered smart voice reminder and alarm app in Hindi and English with natural language recognition, full-screen alarms, and TTS voice alerts.",
+  "name": "Memory Plus - Smart Reminder & Alarm",
+  "description": "Smart reminder and alarm app with full-screen alerts, loud notifications, continuous vibration, and schedule management.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

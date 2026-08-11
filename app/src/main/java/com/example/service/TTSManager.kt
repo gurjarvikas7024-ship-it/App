@@ -61,12 +61,9 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
         }
 
         try {
-            // Check if text has Hindi characters
-            val hasHindi = cleanText.any { it in '\u0900'..'\u097F' }
-            val targetLocale = if (hasHindi) Locale("hi", "IN") else Locale("en", "IN")
-            val langResult = tts?.setLanguage(targetLocale)
+            val langResult = tts?.setLanguage(Locale.US)
             if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts?.setLanguage(Locale.US)
+                tts?.setLanguage(Locale.ENGLISH)
             }
 
             // Apply voice preset pitches and speeds

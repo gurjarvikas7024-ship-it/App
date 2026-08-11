@@ -42,7 +42,7 @@ class GeminiReminderService {
         val currentTimeStr = sdf.format(Calendar.getInstance().time)
 
         val systemPrompt = """
-            You are Yaad AI, a smart AI reminder parser for an Android app.
+            You are Memory Plus, a smart reminder parser for an Android app.
             Today's current date and time is: $currentTimeStr.
             User's Name: $userName.
             

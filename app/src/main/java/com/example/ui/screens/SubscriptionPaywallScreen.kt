@@ -36,7 +36,7 @@ fun SubscriptionPaywallScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Yaad AI Premium", fontWeight = FontWeight.Bold) },
+                title = { Text("Memory Plus Premium", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
@@ -234,7 +234,7 @@ fun SubscriptionPaywallScreen(
                 title = { Text("Google Play Billing") },
                 text = {
                     Column {
-                        Text("Yaad AI Premium Subscription (${if (selectedPlan == "MONTHLY") "$1.99/mo" else "$11.99/yr"})")
+                        Text("Memory Plus Premium Subscription (${if (selectedPlan == "MONTHLY") "$1.99/mo" else "$11.99/yr"})")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Processing purchase securely via Google Play...", style = MaterialTheme.typography.bodySmall)
                     }

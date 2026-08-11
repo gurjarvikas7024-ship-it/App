@@ -3,6 +3,8 @@ package com.example.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -79,13 +81,13 @@ fun HomeScreen(
                 title = {
                     Column {
                         Text(
-                            text = if (uiState.userName.isNotBlank() && uiState.userName != "User") "Hello, ${uiState.userName}!" else "Yaad AI",
+                            text = if (uiState.userName.isNotBlank() && uiState.userName != "User") "Hello, ${uiState.userName}!" else "Memory Plus",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = DeepSlateNavy
                         )
                         Text(
-                            text = "Smart Full Screen AI Reminders",
+                            text = "Smart Full Screen Reminders & Alarms",
                             style = MaterialTheme.typography.labelSmall,
                             color = SlateMutedText
                         )
@@ -246,14 +248,23 @@ fun HomeScreen(
                     // Filter Chips
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                     ) {
                         HomeFilterTab.entries.forEach { tab ->
                             val isSelected = selectedTab == tab
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { onSelectTab(tab) },
-                                label = { Text(tab.labelEnglish, fontSize = 12.sp) },
+                                label = { 
+                                    Text(
+                                        tab.labelEnglish, 
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    ) 
+                                },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = OceanBlueAccent,
                                     selectedLabelColor = Color.White,

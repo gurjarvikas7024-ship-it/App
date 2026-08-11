@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "YaadAI"
+rootProject.name = "MemoryPlus"
 
 include(":app")

@@ -81,7 +81,7 @@ fun VoiceInputBottomSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Yaad AI Voice & Smart Reminder",
+                    text = "Memory Plus Smart Reminder",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )

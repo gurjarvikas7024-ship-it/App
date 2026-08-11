@@ -3,8 +3,7 @@ package com.example.ui.screens
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ReminderEntity
 import com.example.data.model.RepeatType
-import com.example.service.TTSManager
 import com.example.ui.theme.OrangeAccent
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,27 +34,7 @@ fun AddEditReminderScreen(
 
     var title by remember { mutableStateOf(existingReminder?.title ?: "") }
     var description by remember { mutableStateOf(existingReminder?.description ?: "") }
-    var customScript by remember { mutableStateOf(existingReminder?.customVoiceScript ?: "") }
     var repeatType by remember { mutableStateOf(existingReminder?.repeatType ?: RepeatType.ONCE.name) }
-    var isVoiceEnabled by remember { mutableStateOf(existingReminder?.isVoiceEnabled ?: true) }
-    var selectedVoicePreset by remember { mutableStateOf(existingReminder?.voicePreset ?: "Studio Female") }
-
-    var ttsManager by remember { mutableStateOf<TTSManager?>(null) }
-
-    DisposableEffect(Unit) {
-        val manager = TTSManager(context)
-        ttsManager = manager
-        onDispose {
-            manager.shutdown()
-        }
-    }
-
-    val voiceProfiles = listOf(
-        "Studio Female",
-        "Executive Male",
-        "Soft Narrator",
-        "Bold Leader"
-    )
 
     val calendar = remember {
         Calendar.getInstance().apply {
@@ -125,14 +102,14 @@ fun AddEditReminderScreen(
                 .padding(innerPadding)
                 .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             // Reminder Title Input
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Reminder Title *") },
-                placeholder = { Text("e.g. Order birthday gift for Priya") },
+                placeholder = { Text("e.g. Take morning medicine") },
                 leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -174,15 +151,25 @@ fun AddEditReminderScreen(
                 RepeatType.MONTHLY.name to "Monthly"
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
             ) {
                 repeatDisplayMap.forEach { (typeKey, labelStr) ->
                     val isSelected = repeatType == typeKey
                     FilterChip(
                         selected = isSelected,
                         onClick = { repeatType = typeKey },
-                        label = { Text(labelStr, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { 
+                            Text(
+                                labelStr, 
+                                fontSize = 12.sp, 
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false
+                            ) 
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = OrangeAccent,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -191,61 +178,19 @@ fun AddEditReminderScreen(
                 }
             }
 
-            // AI Voice Announcement Script & Profile Input
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = customScript,
-                    onValueChange = { customScript = it },
-                    label = { Text("AI Voice Script (What Voice Speaks)") },
-                    placeholder = { Text("e.g. I need to wake up at 5:00 AM") },
-                    leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                Text("Voice Profile:", style = MaterialTheme.typography.labelMedium)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(voiceProfiles) { profile ->
-                        val isSelected = selectedVoicePreset == profile
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedVoicePreset = profile },
-                            label = { Text(profile, fontSize = 12.sp) }
-                        )
-                    }
-                }
-
-                // Test AI Voice Speech Button
-                OutlinedButton(
-                    onClick = {
-                        val scriptToSpeak = if (customScript.isNotBlank()) customScript else if (title.isNotBlank()) title else "I need to wake up at 5:00 AM"
-                        ttsManager?.speak(scriptToSpeak, selectedVoicePreset)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OrangeAccent)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Test AI Voice Script ($selectedVoicePreset)")
-                }
-            }
-
             // Notes / Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Notes (Optional)") },
+                label = { Text("Notes & Details (Optional)") },
                 placeholder = { Text("Add additional details...") },
                 leadingIcon = { Icon(Icons.Default.Notes, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
+                minLines = 3,
                 shape = RoundedCornerShape(16.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Save Reminder Button
             Button(
@@ -257,10 +202,9 @@ fun AddEditReminderScreen(
                             description = description.trim(),
                             timeMillis = calendar.timeInMillis,
                             repeatType = repeatType,
-                            isVoiceEnabled = isVoiceEnabled,
-                            voicePreset = selectedVoicePreset,
-                            customVoiceScript = if (customScript.isNotBlank()) customScript.trim()
-                            else title.trim(),
+                            isVoiceEnabled = false,
+                            voicePreset = "",
+                            customVoiceScript = title.trim(),
                             status = existingReminder?.status ?: "PENDING"
                         )
                         onSave(reminderToSave)
