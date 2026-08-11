@@ -36,7 +36,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     val voicePresetFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_VOICE_PRESET] ?: "Jethalal"
+        prefs[KEY_VOICE_PRESET] ?: "Studio Female"
     }
 
     val isOnboardingDoneFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->

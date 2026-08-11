@@ -28,7 +28,10 @@ class ReminderReceiver : BroadcastReceiver() {
         val preset = intent.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra(EXTRA_REMINDER_ID, id)
             putExtra(EXTRA_REMINDER_TITLE, title)
             putExtra(EXTRA_REMINDER_SCRIPT, script)
@@ -46,12 +49,15 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("याद AI Alarm: $title")
-            .setContentText(script.ifEmpty { "आपका रिमाइंडर टाइम हो गया है!" })
+            .setContentTitle("Yaad AI Alarm: $title")
+            .setContentText(script.ifEmpty { "Time for your scheduled reminder!" })
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setAutoCancel(true)
+            .setContentIntent(fullScreenPendingIntent)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(false)
 
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -60,7 +66,7 @@ class ReminderReceiver : BroadcastReceiver() {
             e.printStackTrace()
         }
 
-        // Launch full screen activity
+        // Launch full screen activity overlay immediately
         try {
             context.startActivity(alarmIntent)
         } catch (e: Exception) {

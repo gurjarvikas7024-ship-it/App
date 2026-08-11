@@ -40,7 +40,7 @@ fun AddEditReminderScreen(
     var customScript by remember { mutableStateOf(existingReminder?.customVoiceScript ?: "") }
     var repeatType by remember { mutableStateOf(existingReminder?.repeatType ?: RepeatType.ONCE.name) }
     var isVoiceEnabled by remember { mutableStateOf(existingReminder?.isVoiceEnabled ?: true) }
-    var selectedVoicePreset by remember { mutableStateOf(existingReminder?.voicePreset ?: "Jethalal") }
+    var selectedVoicePreset by remember { mutableStateOf(existingReminder?.voicePreset ?: "Studio Female") }
 
     var ttsManager by remember { mutableStateOf<TTSManager?>(null) }
 
@@ -52,13 +52,11 @@ fun AddEditReminderScreen(
         }
     }
 
-    val characterOptions = listOf(
-        "Jethalal" to "TMKOC",
-        "Motu" to "Motu Patlu",
-        "Patlu" to "Motu Patlu",
-        "Daya Bhabhi" to "TMKOC",
-        "Inspector Daya" to "CID",
-        "Studio Female" to "Standard"
+    val voiceProfiles = listOf(
+        "Studio Female",
+        "Executive Male",
+        "Soft Narrator",
+        "Bold Leader"
     )
 
     val calendar = remember {
@@ -193,7 +191,7 @@ fun AddEditReminderScreen(
                 }
             }
 
-            // AI Voice Announcement Script Input
+            // AI Voice Announcement Script & Profile Input
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = customScript,
@@ -205,18 +203,33 @@ fun AddEditReminderScreen(
                     shape = RoundedCornerShape(16.dp)
                 )
 
+                Text("Voice Profile:", style = MaterialTheme.typography.labelMedium)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(voiceProfiles) { profile ->
+                        val isSelected = selectedVoicePreset == profile
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedVoicePreset = profile },
+                            label = { Text(profile, fontSize = 12.sp) }
+                        )
+                    }
+                }
+
                 // Test AI Voice Speech Button
                 OutlinedButton(
                     onClick = {
                         val scriptToSpeak = if (customScript.isNotBlank()) customScript else if (title.isNotBlank()) title else "I need to wake up at 5:00 AM"
-                        ttsManager?.speak(scriptToSpeak)
+                        ttsManager?.speak(scriptToSpeak, selectedVoicePreset)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OrangeAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Test AI Voice Script")
+                    Text("Test AI Voice Script ($selectedVoicePreset)")
                 }
             }
 

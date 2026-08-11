@@ -86,6 +86,8 @@ class AlarmActivity : ComponentActivity() {
                     script = customScript,
                     onSnooze = {
                         stopEffects()
+                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+                        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
                         if (reminderId != -1L) {
                             CoroutineScope(Dispatchers.IO).launch {
                                 val db = AppDatabase.getInstance(applicationContext)
@@ -104,6 +106,8 @@ class AlarmActivity : ComponentActivity() {
                     },
                     onDismiss = {
                         stopEffects()
+                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+                        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
                         if (reminderId != -1L) {
                             CoroutineScope(Dispatchers.IO).launch {
                                 val db = AppDatabase.getInstance(applicationContext)

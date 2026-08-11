@@ -10,20 +10,22 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = TextToSpeech(context.applicationContext, this)
     private var isInitialized = false
     private var pendingSpeech: String? = null
+    private var pendingPreset: String? = null
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("hi", "IN"))
+            val result = tts?.setLanguage(Locale.US)
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts?.language = Locale.US
+                tts?.language = Locale.getDefault()
             }
             // Standard clear AI voice tone
             tts?.setPitch(1.0f)
             tts?.setSpeechRate(1.0f)
             isInitialized = true
-            pendingSpeech?.let {
-                speak(it)
+            pendingSpeech?.let { speech ->
+                speak(speech, pendingPreset ?: "Studio Female")
                 pendingSpeech = null
+                pendingPreset = null
             }
         } else {
             Log.e("TTSManager", "TTS Initialization failed!")
@@ -36,6 +38,7 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
 
         if (!isInitialized) {
             pendingSpeech = cleanText
+            pendingPreset = voicePreset
             return
         }
 

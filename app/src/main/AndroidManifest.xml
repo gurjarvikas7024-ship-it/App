@@ -37,8 +37,12 @@
         <activity
             android:name="com.example.ui.alarm.AlarmActivity"
             android:exported="false"
+            android:showWhenLocked="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity=""
             android:theme="@style/Theme.MyApplication" />
 
         <receiver
