@@ -326,6 +326,109 @@ fun HomeScreen(
                     )
                 }
             }
+
+            // Bottom Premium Pricing Banner on Front Page
+            item {
+                Card(
+                    onClick = onOpenPaywall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp, bottom = 12.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = CleanPureWhite),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, AmberAccent)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(AmberAccent),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.WorkspacePremium,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Memory Plus Premium",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DeepSlateNavy
+                                    )
+                                    Text(
+                                        text = "2 Reminders Free • Unlimited for Premium Users",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = SlateMutedText
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = onOpenPaywall,
+                                colors = ButtonDefaults.buttonColors(containerColor = IndigoPrimary),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                Text("Upgrade", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = SkyBorderColor)
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = SkyBlueContainer,
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("MONTHLY PLAN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SlateMutedText)
+                                    Text("₹29 / month", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = OceanBlueAccent)
+                                }
+                            }
+
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, AmberAccent)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("YEARLY PLAN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AmberAccent)
+                                    Text("₹250 / year", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = AmberAccent)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

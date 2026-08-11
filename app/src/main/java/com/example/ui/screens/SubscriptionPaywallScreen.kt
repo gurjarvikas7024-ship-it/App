@@ -78,14 +78,14 @@ fun SubscriptionPaywallScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Unlock Unlimited AI Features",
+                    text = "Unlock Unlimited Reminders",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "Premium experience for students, work & productivity",
+                    text = "First 2 Reminders Free • Upgrade for Unlimited Alarms",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
@@ -100,11 +100,11 @@ fun SubscriptionPaywallScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        FeatureRow("Unlimited Active Reminders")
-                        FeatureRow("Unlimited AI Voice Parsing & Announcements")
-                        FeatureRow("Natural High-Definition Voice Presets")
+                        FeatureRow("First 2 Reminders 100% Free")
+                        FeatureRow("Unlimited Active Reminders & Loud Alarms")
+                        FeatureRow("Full Screen Display Alerts When Locked")
+                        FeatureRow("Continuous Vibration & Custom Schedule")
                         FeatureRow("100% Ad-Free Experience")
-                        FeatureRow("Full Screen Alarm Voice Alerts")
                     }
                 }
 
@@ -149,7 +149,7 @@ fun SubscriptionPaywallScreen(
                                 Text("Auto-renews monthly", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text("$1.99 / mo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("₹29 / month", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -192,13 +192,13 @@ fun SubscriptionPaywallScreen(
                                         color = AmberAccent,
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
-                                        Text("BEST VALUE (38% OFF)", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text("BEST VALUE", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                     }
                                 }
-                                Text("$0.99 / mo ($11.99/yr)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("₹250 / year (Save 28%)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text("$11.99 / yr", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AmberAccent)
+                        Text("₹250 / year", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AmberAccent)
                     }
                 }
             }
@@ -219,7 +219,7 @@ fun SubscriptionPaywallScreen(
                 Icon(Icons.Default.Payment, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isCurrentlyPremium) "Currently Subscribed" else "Pay ${if (selectedPlan == "MONTHLY") "$1.99" else "$11.99"}",
+                    text = if (isCurrentlyPremium) "Currently Subscribed" else "Pay ${if (selectedPlan == "MONTHLY") "₹29" else "₹250"}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -234,7 +234,7 @@ fun SubscriptionPaywallScreen(
                 title = { Text("Google Play Billing") },
                 text = {
                     Column {
-                        Text("Memory Plus Premium Subscription (${if (selectedPlan == "MONTHLY") "$1.99/mo" else "$11.99/yr"})")
+                        Text("Memory Plus Premium Subscription (${if (selectedPlan == "MONTHLY") "₹29/month" else "₹250/year"})")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Processing purchase securely via Google Play...", style = MaterialTheme.typography.bodySmall)
                     }

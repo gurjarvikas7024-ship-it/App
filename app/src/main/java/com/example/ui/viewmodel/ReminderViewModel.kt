@@ -251,8 +251,8 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     fun addReminder(reminder: ReminderEntity, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             val currentState = uiState.value
-            if (!currentState.isPremium && currentState.activeReminderCount >= 5) {
-                onError("Free plan is limited to 5 active reminders. Upgrade to Premium for unlimited reminders!")
+            if (!currentState.isPremium && currentState.activeReminderCount >= 2) {
+                onError("Free plan is limited to 2 active reminders. Upgrade to Premium for unlimited reminders!")
                 return@launch
             }
 
