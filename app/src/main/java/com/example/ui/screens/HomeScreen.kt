@@ -152,301 +152,87 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-            // Search Bar & Premium Upgrade Banner
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search reminders...", color = TextSecondary) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { onSearchQueryChange("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = AppCardDark,
-                            unfocusedContainerColor = AppCardDark,
-                            focusedBorderColor = OrangeAccent,
-                            unfocusedBorderColor = AppCardBorderDark,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-
-                    if (!uiState.isPremium) {
-                        Card(
-                            onClick = onOpenPaywall,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = OrangeBannerBg),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, OrangeBannerBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = OrangeAccent,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text("Yaad AI Premium", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                                        Text("Unlimited reminders & HD voice", fontSize = 12.sp, color = TextSecondary)
-                                    }
-                                }
-                                Text(
-                                    "Upgrade",
-                                    color = OrangeAccent,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Top Dashboard Arc Progress Card (Matching Photo)
+            // Primary "Set Reminder" Hero Card
             item {
                 Card(
+                    onClick = onOpenAddReminder,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = AppCardDark),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AppCardBorderDark)
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = OrangeBannerBg),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, OrangeAccent)
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Semi-circular Gauge Arc Drawing
-                        Box(
-                            contentAlignment = Alignment.TopCenter,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(90.dp)
-                        ) {
-                            Canvas(
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .height(110.dp)
-                            ) {
-                                val strokeWidth = 8.dp.toPx()
-                                // Dotted/dashed background track
-                                drawArc(
-                                    color = Color(0xFF33333A),
-                                    startAngle = 180f,
-                                    sweepAngle = 180f,
-                                    useCenter = false,
-                                    style = Stroke(
-                                        width = strokeWidth,
-                                        cap = StrokeCap.Round,
-                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
-                                    )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AddCircle,
+                                    contentDescription = null,
+                                    tint = OrangeAccent,
+                                    modifier = Modifier.size(26.dp)
                                 )
-                                // Active progress arc
-                                if (progressPercent > 0) {
-                                    drawArc(
-                                        color = GreenAccent,
-                                        startAngle = 180f,
-                                        sweepAngle = 180f * (progressPercent / 100f),
-                                        useCenter = false,
-                                        style = Stroke(
-                                            width = strokeWidth,
-                                            cap = StrokeCap.Round
-                                        )
-                                    )
-                                }
-                            }
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(top = 18.dp)
-                            ) {
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "$progressPercent%",
-                                    fontSize = 38.sp,
+                                    text = "Set Reminder",
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
-                                Text(
-                                    text = "Aaj ka progress",
-                                    fontSize = 13.sp,
-                                    color = TextSecondary
-                                )
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Inner "Agla reminder" Banner
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = OrangeBannerBg),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, OrangeBannerBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(14.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccessAlarm,
-                                        contentDescription = null,
-                                        tint = OrangeAccent,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(
-                                            text = "Agla reminder",
-                                            fontSize = 11.sp,
-                                            color = TextSecondary
-                                        )
-                                        Text(
-                                            text = nextReminder?.title ?: "Koi agla reminder nahi hai",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-
-                                if (nextReminder != null) {
-                                    Text(
-                                        text = nextReminderTimeFormatted,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = OrangeAccent,
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Metrics Grid (2 Cards Side-by-Side: Aaj Complete & Streak)
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Card 1: Aaj Complete
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = AppCardDark),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AppCardBorderDark)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(GreenBadgeBg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = GreenAccent,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Aaj Complete", fontSize = 13.sp, color = TextSecondary)
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "$completedTodayCount",
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = GreenAccent
-                                )
-                                Text(
-                                    text = " of $totalTodayCount",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(bottom = 2.dp)
-                                )
-                            }
-
-                            Text("reminders done", fontSize = 11.sp, color = TextSecondary)
-                        }
-                    }
-
-                    // Card 2: Streak
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = AppCardDark),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AppCardBorderDark)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(OrangeBannerBg),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.LocalFireDepartment,
-                                        contentDescription = null,
-                                        tint = OrangeAccent,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Streak", fontSize = 13.sp, color = TextSecondary)
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "7 days",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = OrangeAccent
+                                text = "Title • Date & Time • Roj / Daily / Week / Month • AI Voice Script & Character",
+                                fontSize = 12.sp,
+                                color = TextSecondary,
+                                lineHeight = 16.sp
                             )
+                        }
 
-                            Text("keep it up! 🔥", fontSize = 11.sp, color = TextSecondary)
+                        Button(
+                            onClick = onOpenAddReminder,
+                            colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Click Here", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                         }
                     }
                 }
             }
 
-            // Section Header & Tabs
+            // Quick Search Bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = { Text("Search active reminders...", color = TextSecondary) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = AppCardDark,
+                        unfocusedContainerColor = AppCardDark,
+                        focusedBorderColor = OrangeAccent,
+                        unfocusedBorderColor = AppCardBorderDark,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
+
+            // Section Header & Active Filter Tabs
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
@@ -455,15 +241,16 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Aaj ke Reminders",
+                            text = "Aane Wale Reminders (Active)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
-                            text = "${reminders.size} total",
+                            text = "${reminders.count { it.status == ReminderStatus.PENDING.name }} active",
                             fontSize = 13.sp,
-                            color = TextSecondary
+                            color = OrangeAccent,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 

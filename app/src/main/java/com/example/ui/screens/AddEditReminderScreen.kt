@@ -169,7 +169,7 @@ fun AddEditReminderScreen(
 
             // Character Voice Choice (Jethalal, Motu, Patlu, Daya Bhabhi, Inspector Daya)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Select Character Voice:", fontWeight = FontWeight.Bold)
+                Text("Select AI Voice Character:", fontWeight = FontWeight.Bold)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -198,8 +198,8 @@ fun AddEditReminderScreen(
                 // Test Character Voice Button
                 OutlinedButton(
                     onClick = {
-                        val textToSpeak = if (title.isNotBlank()) title else "Priya ka birthday - gift order karna"
-                        ttsManager?.speak(textToSpeak, selectedVoicePreset)
+                        val scriptToSpeak = if (customScript.isNotBlank()) customScript else if (title.isNotBlank()) title else "Priya ka birthday - gift order karna"
+                        ttsManager?.speak(scriptToSpeak, selectedVoicePreset)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
@@ -210,27 +210,38 @@ fun AddEditReminderScreen(
                 }
             }
 
-            // Repeat Options
-            Text("Repeat Schedule:", fontWeight = FontWeight.Bold)
+            // Repeat Options (Once, Roj / Daily, Weekly / Week, Monthly / Month)
+            Text("Repeat Option:", fontWeight = FontWeight.Bold)
+            val repeatDisplayMap = mapOf(
+                RepeatType.ONCE.name to "Ek Baar (Once)",
+                RepeatType.DAILY.name to "Roj (Daily)",
+                RepeatType.WEEKLY.name to "Weekly (Week)",
+                RepeatType.MONTHLY.name to "Monthly (Month)"
+            )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                RepeatType.entries.filter { it != RepeatType.CUSTOM }.forEach { type ->
+                repeatDisplayMap.forEach { (typeKey, labelStr) ->
+                    val isSelected = repeatType == typeKey
                     FilterChip(
-                        selected = repeatType == type.name,
-                        onClick = { repeatType = type.name },
-                        label = { Text(type.labelEnglish, fontSize = 12.sp) }
+                        selected = isSelected,
+                        onClick = { repeatType = typeKey },
+                        label = { Text(labelStr, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = OrangeAccent,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
                 }
             }
 
-            // AI Voice Announcement Script Input (Optional Override)
+            // AI Voice Announcement Script Input (Voice Kya Bole)
             OutlinedTextField(
                 value = customScript,
                 onValueChange = { customScript = it },
-                label = { Text("Custom Script (Optional)") },
-                placeholder = { Text("e.g. Gift order karna mat bhoolna!") },
+                label = { Text("AI Voice Script (Voice Kya Bole) *") },
+                placeholder = { Text("e.g. Aaj Priya ka birthday hai, gift order karna mat bhoolna!") },
                 leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
@@ -279,7 +290,7 @@ fun AddEditReminderScreen(
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    if (existingReminder == null) "Save Reminder" else "Update Reminder",
+                    if (existingReminder == null) "Set Reminder" else "Update Reminder",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
