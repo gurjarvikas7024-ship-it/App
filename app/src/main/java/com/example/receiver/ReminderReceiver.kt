@@ -1,5 +1,6 @@
 package com.example.receiver
 
+import android.app.ActivityOptions
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -18,7 +19,7 @@ class ReminderReceiver : BroadcastReceiver() {
         const val EXTRA_REMINDER_TITLE = "extra_reminder_title"
         const val EXTRA_REMINDER_SCRIPT = "extra_reminder_script"
         const val EXTRA_REMINDER_PRESET = "extra_reminder_preset"
-        const val CHANNEL_ID = "yaad_ai_alarm_channel"
+        const val CHANNEL_ID = "yaad_ai_alarm_channel_v3"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -28,21 +29,32 @@ class ReminderReceiver : BroadcastReceiver() {
         val preset = intent.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+            )
             putExtra(EXTRA_REMINDER_ID, id)
             putExtra(EXTRA_REMINDER_TITLE, title)
             putExtra(EXTRA_REMINDER_SCRIPT, script)
             putExtra(EXTRA_REMINDER_PRESET, preset)
         }
 
+        val activityOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ActivityOptions.makeBasic().apply {
+                setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+            }.toBundle()
+        } else null
+
         val fullScreenPendingIntent = PendingIntent.getActivity(
             context,
             id.toInt(),
             alarmIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            activityOptions
         )
 
         createNotificationChannel(context)
@@ -58,6 +70,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
 
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -66,9 +79,13 @@ class ReminderReceiver : BroadcastReceiver() {
             e.printStackTrace()
         }
 
-        // Launch full screen activity overlay immediately
+        // Launch full screen activity overlay immediately over Facebook, Instagram or any active app
         try {
-            context.startActivity(alarmIntent)
+            if (activityOptions != null) {
+                context.startActivity(alarmIntent, activityOptions)
+            } else {
+                context.startActivity(alarmIntent)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -78,14 +95,18 @@ class ReminderReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Yaad AI Alarms",
+                "Yaad AI Full Screen Alarms",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "High priority full screen alarms and reminders"
+                description = "High priority full screen alarms that pop up over active apps"
                 enableVibration(true)
+                enableLights(true)
+                setBypassDnd(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
 }
+

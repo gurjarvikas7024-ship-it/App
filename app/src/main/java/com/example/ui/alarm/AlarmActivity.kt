@@ -40,7 +40,9 @@ import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class AlarmActivity : ComponentActivity() {
@@ -48,6 +50,7 @@ class AlarmActivity : ComponentActivity() {
     private var ringtone: Ringtone? = null
     private var vibrator: Vibrator? = null
     private var ttsManager: TTSManager? = null
+    private var alarmScope: CoroutineScope? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +68,8 @@ class AlarmActivity : ComponentActivity() {
         // TTS Speech
         ttsManager = TTSManager(this)
 
-        CoroutineScope(Dispatchers.IO).launch {
+        alarmScope = CoroutineScope(Dispatchers.IO)
+        alarmScope?.launch {
             val userPrefs = UserPreferencesRepository(applicationContext)
             val name = userPrefs.userNameFlow.first()
             val globalPreset = userPrefs.voicePresetFlow.first()
@@ -74,9 +78,27 @@ class AlarmActivity : ComponentActivity() {
             val spokenText = if (customScript.isNotBlank()) customScript
             else reminderTitle
 
-            // Short delay so ringtone rings first then TTS speaks
-            kotlinx.coroutines.delay(1000)
-            ttsManager?.speak(spokenText, activePreset)
+            // Short delay so initial ringtone alerts user, then TTS speaks AI script clearly
+            kotlinx.coroutines.delay(800)
+
+            while (isActive) {
+                // Duck/pause ringtone while TTS speaks so voice is crystal clear
+                try {
+                    ringtone?.stop()
+                } catch (e: Exception) { e.printStackTrace() }
+
+                ttsManager?.speak(spokenText, activePreset)
+
+                // Wait 6 seconds for speech, then repeat ringtone briefly
+                kotlinx.coroutines.delay(6000)
+
+                if (isActive) {
+                    try {
+                        ringtone?.play()
+                    } catch (e: Exception) { e.printStackTrace() }
+                    kotlinx.coroutines.delay(2000)
+                }
+            }
         }
 
         setContent {
@@ -122,6 +144,12 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        turnScreenOnAndKeyguard()
+    }
+
     private fun turnScreenOnAndKeyguard() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -158,6 +186,11 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private fun stopEffects() {
+        try {
+            alarmScope?.cancel()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         ringtone?.stop()
         vibrator?.cancel()
         ttsManager?.stop()
