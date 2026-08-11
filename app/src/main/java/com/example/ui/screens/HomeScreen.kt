@@ -186,7 +186,7 @@ fun HomeScreen(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Title • Date & Time • Roj / Daily / Week / Month • AI Voice Script & Character",
+                                text = "Title • Date & Time • Daily / Weekly / Monthly • AI Voice Script",
                                 fontSize = 12.sp,
                                 color = TextSecondary,
                                 lineHeight = 16.sp
@@ -241,7 +241,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Aane Wale Reminders (Active)",
+                            text = "Upcoming Reminders (Active)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -425,7 +425,7 @@ fun PhotoStyleReminderCard(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
-                            // Character Voice Badge
+                            // AI Voice Badge
                             Surface(
                                 color = OrangeBannerBg,
                                 shape = RoundedCornerShape(8.dp),
@@ -443,7 +443,7 @@ fun PhotoStyleReminderCard(
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = reminder.voicePreset,
+                                        text = "AI Voice",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = OrangeAccent

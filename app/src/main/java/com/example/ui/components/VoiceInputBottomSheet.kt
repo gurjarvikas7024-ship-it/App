@@ -34,19 +34,11 @@ fun VoiceInputBottomSheet(
     onSaveReminder: (ReminderEntity) -> Unit
 ) {
     var textInput by remember { mutableStateOf("") }
-    var selectedCharacterVoice by remember { mutableStateOf("Jethalal") }
+    var selectedVoicePreset by remember { mutableStateOf("Studio Female") }
     var isRecording by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var previewReminder by remember { mutableStateOf<ReminderEntity?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    val characterOptions = listOf(
-        "Jethalal" to "TMKOC",
-        "Motu" to "Motu Patlu",
-        "Patlu" to "Motu Patlu",
-        "Daya Bhabhi" to "TMKOC",
-        "Inspector Daya" to "CID"
-    )
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -158,35 +150,6 @@ fun VoiceInputBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Character Voice Choice
-            Text(
-                text = "Voice Character:",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(characterOptions) { (charName, tag) ->
-                    val isSelected = selectedCharacterVoice == charName
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedCharacterVoice = charName },
-                        label = { Text("$charName ($tag)", fontSize = 12.sp) },
-                        leadingIcon = {
-                            Icon(Icons.Default.RecordVoiceOver, contentDescription = null, modifier = Modifier.size(14.dp))
-                        }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             // Sample Chips
             Text(
                 text = "Suggestions (Tap to try):",
@@ -263,7 +226,7 @@ fun VoiceInputBottomSheet(
                             onParseVoicePrompt(textInput) { reminder ->
                                 isProcessing = false
                                 if (reminder != null) {
-                                    previewReminder = reminder.copy(voicePreset = selectedCharacterVoice)
+                                    previewReminder = reminder.copy(voicePreset = selectedVoicePreset)
                                 } else {
                                     errorMessage = "Error parsing reminder prompt with AI."
                                 }

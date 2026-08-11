@@ -134,7 +134,7 @@ fun AddEditReminderScreen(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Reminder Title *") },
-                placeholder = { Text("e.g. Priya ka birthday - gift order karna") },
+                placeholder = { Text("e.g. Order birthday gift for Priya") },
                 leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -167,56 +167,13 @@ fun AddEditReminderScreen(
                 }
             }
 
-            // Character Voice Choice (Jethalal, Motu, Patlu, Daya Bhabhi, Inspector Daya)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Select AI Voice Character:", fontWeight = FontWeight.Bold)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(characterOptions) { (name, tag) ->
-                        val isSelected = selectedVoicePreset == name
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedVoicePreset = name },
-                            label = { Text("$name ($tag)", fontSize = 12.sp) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = if (isSelected) Icons.Default.VolumeUp else Icons.Default.RecordVoiceOver,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = OrangeAccent,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        )
-                    }
-                }
-
-                // Test Character Voice Button
-                OutlinedButton(
-                    onClick = {
-                        val scriptToSpeak = if (customScript.isNotBlank()) customScript else if (title.isNotBlank()) title else "Priya ka birthday - gift order karna"
-                        ttsManager?.speak(scriptToSpeak, selectedVoicePreset)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OrangeAccent)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Suno '$selectedVoicePreset' ki voice me")
-                }
-            }
-
-            // Repeat Options (Once, Roj / Daily, Weekly / Week, Monthly / Month)
-            Text("Repeat Option:", fontWeight = FontWeight.Bold)
+            // Repeat Options (Once, Daily, Weekly, Monthly)
+            Text("Repeat Schedule:", fontWeight = FontWeight.Bold)
             val repeatDisplayMap = mapOf(
-                RepeatType.ONCE.name to "Ek Baar (Once)",
-                RepeatType.DAILY.name to "Roj (Daily)",
-                RepeatType.WEEKLY.name to "Weekly (Week)",
-                RepeatType.MONTHLY.name to "Monthly (Month)"
+                RepeatType.ONCE.name to "Once",
+                RepeatType.DAILY.name to "Daily",
+                RepeatType.WEEKLY.name to "Weekly",
+                RepeatType.MONTHLY.name to "Monthly"
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -227,7 +184,7 @@ fun AddEditReminderScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { repeatType = typeKey },
-                        label = { Text(labelStr, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(labelStr, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = OrangeAccent,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -236,16 +193,32 @@ fun AddEditReminderScreen(
                 }
             }
 
-            // AI Voice Announcement Script Input (Voice Kya Bole)
-            OutlinedTextField(
-                value = customScript,
-                onValueChange = { customScript = it },
-                label = { Text("AI Voice Script (Voice Kya Bole) *") },
-                placeholder = { Text("e.g. Aaj Priya ka birthday hai, gift order karna mat bhoolna!") },
-                leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            )
+            // AI Voice Announcement Script Input
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = customScript,
+                    onValueChange = { customScript = it },
+                    label = { Text("AI Voice Script (What Voice Speaks)") },
+                    placeholder = { Text("e.g. I need to wake up at 5:00 AM") },
+                    leadingIcon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                )
+
+                // Test AI Voice Speech Button
+                OutlinedButton(
+                    onClick = {
+                        val scriptToSpeak = if (customScript.isNotBlank()) customScript else if (title.isNotBlank()) title else "I need to wake up at 5:00 AM"
+                        ttsManager?.speak(scriptToSpeak)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OrangeAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Test AI Voice Script")
+                }
+            }
 
             // Notes / Description
             OutlinedTextField(

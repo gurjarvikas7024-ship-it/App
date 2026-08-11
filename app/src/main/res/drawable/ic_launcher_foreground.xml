@@ -6,30 +6,30 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer Soundwaves (Electric Blue) -->
+    <!-- Outer Soundwaves (Electric Neon Cyan #06B6D4) -->
     <path
         android:pathData="M 28,42 C 24,48 24,60 28,66"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="3.5"
         android:strokeLineCap="round" />
     <path
         android:pathData="M 20,36 C 14,46 14,62 20,72"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="3.5"
         android:strokeLineCap="round" />
 
     <path
         android:pathData="M 80,42 C 84,48 84,60 80,66"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="3.5"
         android:strokeLineCap="round" />
     <path
         android:pathData="M 88,36 C 94,46 94,62 88,72"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="3.5"
         android:strokeLineCap="round" />
 
-    <!-- Bell Handle Ring (Gold) -->
+    <!-- Bell Handle Ring (Champagne Gold) -->
     <path
         android:pathData="M 54,22 C 50.7,22 48,24.7 48,28 L 60,28 C 60,24.7 57.3,22 54,22 Z"
         android:fillColor="#F59E0B" />
@@ -43,16 +43,16 @@
                 android:endX="54"
                 android:endY="60"
                 android:type="linear">
-                <item android:color="#FBBF24" android:offset="0.0" />
+                <item android:color="#FCD34D" android:offset="0.0" />
                 <item android:color="#F59E0B" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Bell Rim Accent (Electric Blue Glow) -->
+    <!-- Bell Rim Accent (Electric Neon Cyan Glow) -->
     <path
         android:pathData="M 33,60 L 75,60"
-        android:strokeColor="#3B82F6"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="2.5"
         android:strokeLineCap="round" />
 
@@ -61,8 +61,8 @@
         android:pathData="M 50,60 C 50,62.2 51.8,64 54,64 C 56.2,64 58,62.2 58,60 Z"
         android:fillColor="#D97706" />
 
-    <!-- AI Pulse Center Dot in Bell (Electric Blue) -->
+    <!-- AI Pulse Center Dot in Bell (Electric Neon Cyan) -->
     <path
         android:pathData="M 54,44 m -4,0 a 4,4 0 1,1 8,0 a 4,4 0 1,1 -8,0"
-        android:fillColor="#3B82F6" />
+        android:fillColor="#06B6D4" />
 </vector>

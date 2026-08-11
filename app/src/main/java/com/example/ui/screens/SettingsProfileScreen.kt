@@ -39,13 +39,10 @@ fun SettingsProfileScreen(
     var selectedPreset by remember(uiState.voicePreset) { mutableStateOf(uiState.voicePreset) }
 
     val voicePresets = listOf(
-        VoicePresetOption("Jethalal", "TMKOC • 'Chai Piyo, Biscuit Khao!'", Icons.Default.Face),
-        VoicePresetOption("Motu", "Motu Patlu • 'Khali pet dimaag ki batti...'", Icons.Default.Fastfood),
-        VoicePresetOption("Patlu", "Motu Patlu • 'Ek super idea hai!'", Icons.Default.Lightbulb),
-        VoicePresetOption("Daya Bhabhi", "TMKOC • 'Hey Maa, Mataji!'", Icons.Default.RecordVoiceOver),
-        VoicePresetOption("Inspector Daya", "CID • 'Daya, darwaza tod do!'", Icons.Default.Security),
-        VoicePresetOption("Studio Female", "Crisp & Clear Standard", Icons.Default.VolumeUp),
-        VoicePresetOption("Executive Male", "Deep & Professional", Icons.Default.VoiceOverOff)
+        VoicePresetOption("Studio Female", "Crisp & Natural Sounding", Icons.Default.VolumeUp),
+        VoicePresetOption("Executive Male", "Deep & Professional Tone", Icons.Default.VoiceOverOff),
+        VoicePresetOption("Soft Narrator", "Warm & Calming Tone", Icons.Default.RecordVoiceOver),
+        VoicePresetOption("Bold Leader", "Expressive & Clear Speech", Icons.Default.Campaign)
     )
 
     var ttsManager by remember { mutableStateOf<TTSManager?>(null) }
@@ -107,7 +104,7 @@ fun SettingsProfileScreen(
                 }
             }
 
-            // High-Definition AI Voice Profiles Card
+            // High-Definition AI Voice Profile Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp)
@@ -115,15 +112,20 @@ fun SettingsProfileScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = AmberAccent)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("AI Voice Presets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = AmberAccent)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("AI Voice Engine", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "AI Voice reads out your exact script or reminder title word-for-word when the alarm triggers.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -134,7 +136,7 @@ fun SettingsProfileScreen(
                                 selectedPreset = preset.name
                                 onSaveVoiceSettings(
                                     uiState.language,
-                                    if (preset.name.contains("Female")) "FEMALE" else "MALE",
+                                    if (preset.name.contains("Female") || preset.name.contains("Soft")) "FEMALE" else "MALE",
                                     preset.name
                                 )
                             },
@@ -154,14 +156,17 @@ fun SettingsProfileScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     RadioButton(
                                         selected = isSelected,
                                         onClick = {
                                             selectedPreset = preset.name
                                             onSaveVoiceSettings(
                                                 uiState.language,
-                                                if (preset.name.contains("Female")) "FEMALE" else "MALE",
+                                                if (preset.name.contains("Female") || preset.name.contains("Soft")) "FEMALE" else "MALE",
                                                 preset.name
                                             )
                                         }
@@ -177,12 +182,12 @@ fun SettingsProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Test Voice Button
+                    // Test Selected Voice Button
                     OutlinedButton(
                         onClick = {
-                            val sampleText = "Priya ka birthday, gift order karna hai."
+                            val sampleText = "I will remind you at 5:00 AM."
                             ttsManager?.speak(sampleText, selectedPreset)
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -190,7 +195,7 @@ fun SettingsProfileScreen(
                     ) {
                         Icon(Icons.Default.VolumeUp, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Test Selected Voice")
+                        Text("Test Selected Voice ('I will remind you at 5:00 AM')")
                     }
                 }
             }
