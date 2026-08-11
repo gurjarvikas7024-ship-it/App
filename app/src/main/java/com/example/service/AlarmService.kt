@@ -1,6 +1,7 @@
 package com.example.service
 
 import android.app.ActivityOptions
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -13,13 +14,12 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.ui.alarm.AlarmActivity
 import com.example.ui.alarm.FullScreenAlarmActivity
 
 class AlarmService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "yaad_ai_alarm_channel_v4"
+        const val CHANNEL_ID = "yaad_ai_alarm_channel_v5"
         const val NOTIFICATION_ID = 9991
         const val ACTION_START_ALARM = "com.example.service.ACTION_START_ALARM"
         const val EXTRA_REMINDER_ID = "extra_reminder_id"
@@ -34,12 +34,16 @@ class AlarmService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
-        wakeLock = powerManager?.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "YaadAI:AlarmServiceWakeLock"
-        )
-        wakeLock?.acquire(10 * 60 * 1000L) // 10 mins timeout safety
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            wakeLock = powerManager?.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "YaadAI:AlarmServiceWakeLock"
+            )
+            wakeLock?.acquire(10 * 60 * 1000L) // 10 minutes safety timeout
+        } catch (e: Exception) {
+            Log.e("AlarmService", "Failed to acquire wake lock", e)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -48,99 +52,125 @@ class AlarmService : Service() {
         val script = intent?.getStringExtra(EXTRA_REMINDER_SCRIPT) ?: ""
         val preset = intent?.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
+        // 1. Create channel & execute startForeground IMMEDIATELY to comply with Android 14 API 34+
         createNotificationChannel()
+        promoteToForegroundImmediately(title, script, id)
 
-        val fullScreenIntent = Intent(this, FullScreenAlarmActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
-                Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-            )
-            putExtra(EXTRA_REMINDER_ID, id)
-            putExtra(EXTRA_REMINDER_TITLE, title)
-            putExtra(EXTRA_REMINDER_SCRIPT, script)
-            putExtra(EXTRA_REMINDER_PRESET, preset)
-        }
-
-        val activityOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            ActivityOptions.makeBasic().apply {
-                setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
-            }.toBundle()
-        } else null
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            id.toInt(),
-            fullScreenIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            activityOptions
-        )
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("Yaad AI: $title")
-            .setContentText(script.ifEmpty { "Important scheduled reminder" })
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setFullScreenIntent(pendingIntent, true)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                    )
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
-                }
-            } catch (e: Exception) {
-                Log.e("AlarmService", "Failed startForeground with type, fallback standard", e)
-                startForeground(NOTIFICATION_ID, notification)
-            }
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
-
-        // Immediately launch full screen overlay over active apps (YouTube, Instagram, Facebook, etc.)
+        // 2. Build full screen intent for FullScreenAlarmActivity
         try {
+            val fullScreenIntent = Intent(this, FullScreenAlarmActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                )
+                putExtra(EXTRA_REMINDER_ID, id)
+                putExtra(EXTRA_REMINDER_TITLE, title)
+                putExtra(EXTRA_REMINDER_SCRIPT, script)
+                putExtra(EXTRA_REMINDER_PRESET, preset)
+            }
+
+            val activityOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                try {
+                    ActivityOptions.makeBasic().apply {
+                        setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+                    }.toBundle()
+                } catch (e: Exception) {
+                    null
+                }
+            } else null
+
+            // Trigger full screen overlay activity over active apps (YouTube, Instagram, etc.)
             if (activityOptions != null) {
                 startActivity(fullScreenIntent, activityOptions)
             } else {
                 startActivity(fullScreenIntent)
             }
-        } catch (e: Exception) {
-            Log.e("AlarmService", "Failed to launch full screen intent from Service", e)
+        } catch (e: Throwable) {
+            Log.e("AlarmService", "Error triggering full screen intent activity from AlarmService", e)
         }
 
         return START_NOT_STICKY
     }
 
+    private fun promoteToForegroundImmediately(title: String, script: String, id: Long) {
+        try {
+            val fullScreenIntent = Intent(this, FullScreenAlarmActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                )
+                putExtra(EXTRA_REMINDER_ID, id)
+                putExtra(EXTRA_REMINDER_TITLE, title)
+                putExtra(EXTRA_REMINDER_SCRIPT, script)
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                if (id != -1L) id.toInt() else NOTIFICATION_ID,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle("Yaad AI: $title")
+                .setContentText(script.ifEmpty { "Important scheduled reminder" })
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(pendingIntent, true)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .build()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    try {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                        )
+                    } catch (e: Throwable) {
+                        Log.e("AlarmService", "startForeground specialUse failed, falling back to standard", e)
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Throwable) {
+            Log.e("AlarmService", "Fatal error in promoteToForegroundImmediately", e)
+        }
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Yaad AI Priority Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Triggers full screen alarm overlays over all applications"
-                enableVibration(true)
-                enableLights(true)
-                setBypassDnd(true)
-                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            try {
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Yaad AI Priority Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Triggers full screen alarm overlays over all applications"
+                    enableVibration(true)
+                    enableLights(true)
+                    setBypassDnd(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                }
+                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                manager?.createNotificationChannel(channel)
+            } catch (e: Exception) {
+                Log.e("AlarmService", "Error creating NotificationChannel", e)
             }
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
         }
     }
 
@@ -151,7 +181,7 @@ class AlarmService : Service() {
                 wakeLock?.release()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("AlarmService", "Error releasing WakeLock", e)
         }
     }
 }
