@@ -36,8 +36,9 @@ import com.example.data.repository.ReminderRepository
 import com.example.receiver.ReminderReceiver
 import com.example.service.AlarmScheduler
 import com.example.service.TTSManager
-import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.OceanBlueAccent
+import com.example.ui.theme.SkyBlueContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -45,7 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class AlarmActivity : ComponentActivity() {
+open class AlarmActivity : ComponentActivity() {
 
     private var ringtone: Ringtone? = null
     private var vibrator: Vibrator? = null
@@ -55,7 +56,7 @@ class AlarmActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        turnScreenOnAndKeyguard()
+        enforceScreenOvertake()
 
         val reminderId = intent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L)
         val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
@@ -147,10 +148,10 @@ class AlarmActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        turnScreenOnAndKeyguard()
+        enforceScreenOvertake()
     }
 
-    private fun turnScreenOnAndKeyguard() {
+    private fun enforceScreenOvertake() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -159,11 +160,12 @@ class AlarmActivity : ComponentActivity() {
         }
         @Suppress("DEPRECATION")
         window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
     }
 
@@ -213,7 +215,7 @@ fun AlarmFullScreenContent(
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val bellScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.25f,
+        targetValue = 1.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(600, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -235,7 +237,6 @@ fun AlarmFullScreenContent(
             Spacer(modifier = Modifier.height(20.dp))
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Ringing Bell Animated Graphic
                 Box(
                     modifier = Modifier
                         .size(120.dp)
@@ -243,7 +244,7 @@ fun AlarmFullScreenContent(
                         .clip(CircleShape)
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(AmberAccent, Color(0xFFFF9800))
+                                colors = listOf(OceanBlueAccent, Color(0xFF0284C7))
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -259,9 +260,9 @@ fun AlarmFullScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Reminder Alert!",
+                    text = "Yaad AI Reminder Alert",
                     style = MaterialTheme.typography.titleMedium,
-                    color = AmberAccent,
+                    color = OceanBlueAccent,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -280,7 +281,7 @@ fun AlarmFullScreenContent(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = SkyBlueContainer
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
@@ -288,7 +289,7 @@ fun AlarmFullScreenContent(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = AmberAccent)
+                            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OceanBlueAccent)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = script,
@@ -301,7 +302,6 @@ fun AlarmFullScreenContent(
                 }
             }
 
-            // Snooze and Dismiss Buttons
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -313,7 +313,7 @@ fun AlarmFullScreenContent(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2563EB)
+                        containerColor = OceanBlueAccent
                     )
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
@@ -328,9 +328,9 @@ fun AlarmFullScreenContent(
                         .height(52.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.Default.Snooze, contentDescription = null)
+                    Icon(Icons.Default.Snooze, contentDescription = null, tint = OceanBlueAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Snooze 10 Mins", fontSize = 16.sp)
+                    Text("Snooze 10 Mins", fontSize = 16.sp, color = OceanBlueAccent)
                 }
             }
         }

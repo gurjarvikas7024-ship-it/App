@@ -1,12 +1,7 @@
 package com.example.ui.screens
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -56,16 +50,7 @@ fun HomeScreen(
     onEditReminder: (ReminderEntity) -> Unit,
     onSnoozeReminder: (Long) -> Unit
 ) {
-    // Calculations for Header Dashboard matching the reference photo
     val context = LocalContext.current
-    var hasOverlayPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Settings.canDrawOverlays(context)
-            } else true
-        )
-    }
-
     val now = System.currentTimeMillis()
     val timeSdf = remember { SimpleDateFormat("hh:mm a", Locale.ENGLISH) }
 
@@ -82,25 +67,14 @@ fun HomeScreen(
 
     val totalTodayCount = todayReminders.size
     val completedTodayCount = todayReminders.count { it.status == ReminderStatus.COMPLETED.name }
-    val progressPercent = if (totalTodayCount > 0) ((completedTodayCount.toFloat() / totalTodayCount) * 100).toInt() else 0
-
-    val nextReminder = remember(reminders) {
-        reminders.filter { it.status == ReminderStatus.PENDING.name && it.timeMillis >= now }
-            .minByOrNull { it.timeMillis }
-            ?: reminders.firstOrNull { it.status == ReminderStatus.PENDING.name }
-    }
-
-    val nextReminderTimeFormatted = remember(nextReminder) {
-        if (nextReminder != null) timeSdf.format(Date(nextReminder.timeMillis)) else "--:--"
-    }
 
     Scaffold(
-        containerColor = AppBackgroundDark,
+        containerColor = LightSurfaceBg,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppBackgroundDark,
-                    titleContentColor = Color.White
+                    containerColor = CleanPureWhite,
+                    titleContentColor = DeepSlateNavy
                 ),
                 title = {
                     Column {
@@ -108,12 +82,12 @@ fun HomeScreen(
                             text = if (uiState.userName.isNotBlank() && uiState.userName != "User") "Hello, ${uiState.userName}!" else "Yaad AI",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = DeepSlateNavy
                         )
                         Text(
-                            text = "Smart Offline AI Reminders",
+                            text = "Smart Full Screen AI Reminders",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
+                            color = SlateMutedText
                         )
                     }
                 },
@@ -122,21 +96,21 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = "AI Voice Assistant",
-                            tint = OrangeAccent
+                            tint = OceanBlueAccent
                         )
                     }
                     IconButton(onClick = onOpenCalendar) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = "Calendar View",
-                            tint = Color.White
+                            tint = DeepSlateNavy
                         )
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = Color.White
+                            tint = DeepSlateNavy
                         )
                     }
                 }
@@ -145,7 +119,7 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onOpenAddReminder,
-                containerColor = OrangeAccent,
+                containerColor = OceanBlueAccent,
                 contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier.size(60.dp)
@@ -164,70 +138,17 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 90.dp)
+            contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
         ) {
-            if (!hasOverlayPermission) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF2D1619)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Full Screen Alert Permission Required",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Jab aap Facebook, Instagram ya koi app chla rahe ho tab bhi full screen reminder display ke liye 'Display over other apps' permission allow karein.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.LightGray
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = Intent(
-                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                            Uri.parse("package:${context.packageName}")
-                                        )
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Allow Display Over Other Apps", color = Color.White, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
 
-            // Primary "Set Reminder" Hero Card
+            // Primary "Set Reminder" Hero Card in Sky Blue Container
             item {
                 Card(
                     onClick = onOpenAddReminder,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = OrangeBannerBg),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, OrangeAccent)
+                    colors = CardDefaults.cardColors(containerColor = SkyBlueContainer),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, SkyBorderColor)
                 ) {
                     Row(
                         modifier = Modifier
@@ -241,7 +162,7 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Default.AddCircle,
                                     contentDescription = null,
-                                    tint = OrangeAccent,
+                                    tint = OceanBlueAccent,
                                     modifier = Modifier.size(26.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -249,24 +170,24 @@ fun HomeScreen(
                                     text = "Set Reminder",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = DeepSlateNavy
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Title • Date & Time • Daily / Weekly / Monthly • AI Voice Script",
                                 fontSize = 12.sp,
-                                color = TextSecondary,
+                                color = SlateMutedText,
                                 lineHeight = 16.sp
                             )
                         }
 
                         Button(
                             onClick = onOpenAddReminder,
-                            colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
+                            colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Click Here", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                            Text("Create", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                         }
                     }
                 }
@@ -277,23 +198,23 @@ fun HomeScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Search active reminders...", color = TextSecondary) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
+                    placeholder = { Text("Search active reminders...", color = SlateMutedText) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = SlateMutedText) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
+                                Icon(Icons.Default.Clear, contentDescription = "Clear", tint = SlateMutedText)
                             }
                         }
                     },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = AppCardDark,
-                        unfocusedContainerColor = AppCardDark,
-                        focusedBorderColor = OrangeAccent,
-                        unfocusedBorderColor = AppCardBorderDark,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        focusedContainerColor = CleanPureWhite,
+                        unfocusedContainerColor = CleanPureWhite,
+                        focusedBorderColor = OceanBlueAccent,
+                        unfocusedBorderColor = SkyBorderColor,
+                        focusedTextColor = DeepSlateNavy,
+                        unfocusedTextColor = DeepSlateNavy
                     ),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
@@ -309,15 +230,15 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Upcoming Reminders (Active)",
+                            text = "Upcoming Reminders",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = DeepSlateNavy
                         )
                         Text(
                             text = "${reminders.count { it.status == ReminderStatus.PENDING.name }} active",
                             fontSize = 13.sp,
-                            color = OrangeAccent,
+                            color = OceanBlueAccent,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -334,16 +255,16 @@ fun HomeScreen(
                                 onClick = { onSelectTab(tab) },
                                 label = { Text(tab.labelEnglish, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = OrangeAccent,
+                                    selectedContainerColor = OceanBlueAccent,
                                     selectedLabelColor = Color.White,
-                                    containerColor = AppCardDark,
-                                    labelColor = TextSecondary
+                                    containerColor = CleanPureWhite,
+                                    labelColor = SlateMutedText
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = AppCardBorderDark,
-                                    selectedBorderColor = OrangeAccent
+                                    borderColor = SkyBorderColor,
+                                    selectedBorderColor = OceanBlueAccent
                                 )
                             )
                         }
@@ -365,20 +286,20 @@ fun HomeScreen(
                                 imageVector = Icons.Default.EventNote,
                                 contentDescription = null,
                                 modifier = Modifier.size(56.dp),
-                                tint = TextSecondary.copy(alpha = 0.4f)
+                                tint = SlateMutedText.copy(alpha = 0.4f)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "No reminders found",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = DeepSlateNavy
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Tap the + button to add your first reminder",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
+                                color = SlateMutedText
                             )
                         }
                     }
@@ -413,8 +334,8 @@ fun PhotoStyleReminderCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AppCardDark),
-        border = androidx.compose.foundation.BorderStroke(1.dp, AppCardBorderDark)
+        colors = CardDefaults.cardColors(containerColor = CleanPureWhite),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -422,12 +343,12 @@ fun PhotoStyleReminderCard(
                 .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Accent Bar (Red/Coral)
+            // Left Accent Bar (Green for completed, Electric Ocean Blue for active)
             Box(
                 modifier = Modifier
                     .width(5.dp)
                     .fillMaxHeight()
-                    .background(if (isCompleted) GreenAccent else RedAccentBar)
+                    .background(if (isCompleted) SuccessGreen else OceanBlueAccent)
             )
 
             Row(
@@ -442,12 +363,11 @@ fun PhotoStyleReminderCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Category/Event Round Icon
                     Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(if (isCompleted) GreenBadgeBg else RedIconBg),
+                            .background(if (isCompleted) SuccessGreenBg else SkyBlueContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -458,7 +378,7 @@ fun PhotoStyleReminderCard(
                                 else -> Icons.Default.NotificationsActive
                             },
                             contentDescription = null,
-                            tint = if (isCompleted) GreenAccent else Color(0xFFF43F5E),
+                            tint = if (isCompleted) SuccessGreen else OceanBlueAccent,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -470,7 +390,7 @@ fun PhotoStyleReminderCard(
                             text = reminder.title,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = DeepSlateNavy,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -482,22 +402,22 @@ fun PhotoStyleReminderCard(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = null,
                                 modifier = Modifier.size(13.dp),
-                                tint = TextSecondary
+                                tint = SlateMutedText
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = formattedTime,
                                 fontSize = 12.sp,
-                                color = TextSecondary
+                                color = SlateMutedText
                             )
 
                             Spacer(modifier = Modifier.width(6.dp))
 
                             // AI Voice Badge
                             Surface(
-                                color = OrangeBannerBg,
+                                color = SkyBlueContainer,
                                 shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, OrangeBannerBorder)
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -506,7 +426,7 @@ fun PhotoStyleReminderCard(
                                     Icon(
                                         imageVector = Icons.Default.RecordVoiceOver,
                                         contentDescription = null,
-                                        tint = OrangeAccent,
+                                        tint = OceanBlueAccent,
                                         modifier = Modifier.size(10.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
@@ -514,7 +434,7 @@ fun PhotoStyleReminderCard(
                                         text = "AI Voice",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = OrangeAccent
+                                        color = OceanBlueAccent
                                     )
                                 }
                             }
@@ -523,13 +443,13 @@ fun PhotoStyleReminderCard(
 
                             // Repeat Pill
                             Surface(
-                                color = Color(0xFF27272A),
+                                color = LightSurfaceBg,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     text = reminder.repeatType,
                                     fontSize = 10.sp,
-                                    color = TextSecondary,
+                                    color = SlateMutedText,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -544,11 +464,10 @@ fun PhotoStyleReminderCard(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Status Badge (Pending / Completed / Missed)
                     val (badgeBg, badgeText, label) = when (reminder.status) {
-                        ReminderStatus.COMPLETED.name -> Triple(GreenBadgeBg, GreenAccent, "Completed")
-                        ReminderStatus.MISSED.name -> Triple(RedIconBg, RedAccentBar, "Missed")
-                        else -> Triple(YellowPendingBg, YellowPendingText, "Pending")
+                        ReminderStatus.COMPLETED.name -> Triple(SuccessGreenBg, SuccessGreen, "Completed")
+                        ReminderStatus.MISSED.name -> Triple(UrgentRedBg, UrgentRed, "Missed")
+                        else -> Triple(SkyBlueContainer, OceanBlueAccent, "Pending")
                     }
 
                     Surface(
@@ -571,31 +490,30 @@ fun PhotoStyleReminderCard(
                             onClick = onEdit,
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = SlateMutedText, modifier = Modifier.size(16.dp))
                         }
 
                         IconButton(
                             onClick = onDelete,
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = RedAccentBar, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = UrgentRed, modifier = Modifier.size(16.dp))
                         }
 
                         Spacer(modifier = Modifier.width(4.dp))
 
-                        // Big Round Green Check Button
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(GreenBadgeBg)
+                                .background(SuccessGreenBg)
                                 .clickable { onToggleCompleted() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Mark Done",
-                                tint = GreenAccent,
+                                tint = SuccessGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                         }

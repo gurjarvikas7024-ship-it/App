@@ -2,57 +2,54 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Reference Dark Palette from Screenshot
-val AppBackgroundDark = Color(0xFF121215)
-val AppCardDark = Color(0xFF1A1A1E)
-val AppCardBorderDark = Color(0xFF282830)
+// Light Sky Blue Theme Palette
+val SkyBlueContainer = Color(0xFFE0F2FE)       // #E0F2FE Primary Container
+val OceanBlueAccent = Color(0xFF0284C7)        // #0284C7 Primary Accent / Buttons
+val OceanBlueDark = Color(0xFF0369A1)          // Darker variant for active/pressed
+val CleanPureWhite = Color(0xFFFFFFFF)         // #FFFFFF Background & Card Surface
+val DeepSlateNavy = Color(0xFF0F172A)          // #0F172A Primary Text & Icons
+val SlateMutedText = Color(0xFF64748B)         // Secondary Text
+val SkyBorderColor = Color(0xFFBAE6FD)         // Soft Border
+val LightSurfaceBg = Color(0xFFF8FAFC)         // Subtle page background
 
-// Vibrant Accents
-val OrangeAccent = Color(0xFFF97316)
-val OrangeBannerBg = Color(0xFF2E1C18)
-val OrangeBannerBorder = Color(0xFF4A2B24)
-
-val GreenAccent = Color(0xFF22C55E)
-val GreenBadgeBg = Color(0xFF133621)
-
-val YellowPendingText = Color(0xFFEAB308)
-val YellowPendingBg = Color(0xFF2A2814)
-
-val RedAccentBar = Color(0xFFEF4444)
-val RedIconBg = Color(0xFF38181E)
-
-// Legacy compatibility colors
-val BluePrimary = Color(0xFF2563EB)
-val BlueDark = Color(0xFF1D4ED8)
-val BlueLight = Color(0xFF1E293B)
-val AmberAccent = Color(0xFFF97316)
-val PurpleSecondary = Color(0xFF8B5CF6)
-
-val IndigoPrimary = BluePrimary
-val IndigoDark = BlueDark
-val IndigoLight = BlueLight
-
-val DarkSurface = AppCardDark
-val DarkSurfaceVariant = Color(0xFF222228)
-val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFF1F5F9)
-val LightBackground = Color(0xFFF8FAFC)
-
-val TextPrimary = Color(0xFFF8FAFC)
-val TextSecondary = Color(0xFFA1A1AA)
+// Status Accents
+val SuccessGreen = Color(0xFF16A34A)
+val SuccessGreenBg = Color(0xFFDCFCE7)
+val WarningAmber = Color(0xFFD97706)
+val WarningAmberBg = Color(0xFFFEF3C7)
+val UrgentRed = Color(0xFFDC2626)
+val UrgentRedBg = Color(0xFFFEE2E2)
 
 // Category Colors
-val CategoryStudy = Color(0xFF3B82F6)
-val CategoryMedicine = Color(0xFFEF4444)
-val CategoryOffice = Color(0xFF14B8A6)
-val CategoryMeeting = Color(0xFFA855F7)
-val CategoryShopping = Color(0xFFF59E0B)
-val CategoryBirthday = Color(0xFFEC4899)
-val CategoryExercise = Color(0xFF10B981)
-val CategoryWater = Color(0xFF06B6D4)
-val CategoryPrayer = Color(0xFF6366F1)
-val CategoryPersonal = Color(0xFF8B5CF6)
+val CategoryStudy = Color(0xFF0284C7)
+val CategoryMedicine = Color(0xFFDC2626)
+val CategoryOffice = Color(0xFF0D9488)
+val CategoryMeeting = Color(0xFF9333EA)
+val CategoryShopping = Color(0xFFD97706)
+val CategoryBirthday = Color(0xFFDB2777)
+val CategoryExercise = Color(0xFF16A34A)
+val CategoryWater = Color(0xFF0891B2)
+val CategoryPrayer = Color(0xFF4F46E5)
+val CategoryPersonal = Color(0xFF7C3AED)
 
+// Theme Compatibility Mapping (Ensures all UI elements adopt Sky Blue & White theme)
+val AppBackgroundDark = LightSurfaceBg
+val AppCardDark = CleanPureWhite
+val AppCardBorderDark = SkyBorderColor
+val OrangeAccent = OceanBlueAccent
+val OrangeBannerBg = SkyBlueContainer
+val OrangeBannerBorder = SkyBorderColor
+val GreenAccent = SuccessGreen
+val YellowPendingText = WarningAmber
+val YellowPendingBg = WarningAmberBg
+val RedAccentBar = UrgentRed
+val TextPrimary = DeepSlateNavy
+val TextSecondary = SlateMutedText
+val BluePrimary = OceanBlueAccent
+val BlueDark = OceanBlueDark
+val BlueLight = SkyBlueContainer
 
-
-
+val AmberAccent = OceanBlueAccent
+val IndigoPrimary = OceanBlueAccent
+val IndigoDark = OceanBlueDark
+val IndigoLight = SkyBlueContainer
