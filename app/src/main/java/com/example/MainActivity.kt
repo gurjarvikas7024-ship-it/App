@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
             val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
             val selectedDateMillis by viewModel.selectedDateMillis.collectAsStateWithLifecycle()
             val remindersForSelectedDate by viewModel.remindersForSelectedDate.collectAsStateWithLifecycle()
+            val showPaywallLimitDialog by viewModel.showPaywallLimitDialog.collectAsStateWithLifecycle()
 
             val context = LocalContext.current
 
@@ -145,9 +146,7 @@ class MainActivity : ComponentActivity() {
                                         viewModel.addReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
-                                            onError = { err ->
-                                                navController.navigate("paywall")
-                                            }
+                                            onError = { /* Handled via showPaywallLimitDialog */ }
                                         )
                                     } else {
                                         viewModel.updateReminder(reminder)
@@ -204,11 +203,51 @@ class MainActivity : ComponentActivity() {
                                 viewModel.addReminder(
                                     reminder = reminder,
                                     onSuccess = {},
-                                    onError = {
-                                        navController.navigate("paywall")
-                                    }
+                                    onError = { /* Handled via showPaywallLimitDialog */ }
                                 )
                             }
+                        )
+                    }
+
+                    if (showPaywallLimitDialog) {
+                        AlertDialog(
+                            onDismissRequest = { viewModel.dismissPaywallDialog() },
+                            title = {
+                                Text(
+                                    text = "Upgrade to Memory Plus Premium",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepSlateNavy
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = "Free version is limited to 2 active reminders. Upgrade for just ₹40/month (or $4.99/year) to unlock unlimited voice reminders.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = SlateMutedText
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        viewModel.dismissPaywallDialog()
+                                        navController.navigate("paywall")
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Upgrade Now", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = { viewModel.dismissPaywallDialog() }
+                                ) {
+                                    Text("Cancel", color = SlateMutedText, fontWeight = FontWeight.Medium)
+                                }
+                            },
+                            containerColor = CleanPureWhite,
+                            shape = RoundedCornerShape(22.dp)
                         )
                     }
                 }

@@ -60,6 +60,9 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     private val _selectedDateMillis = MutableStateFlow<Long>(System.currentTimeMillis())
     val selectedDateMillis: StateFlow<Long> = _selectedDateMillis.asStateFlow()
 
+    private val _showPaywallLimitDialog = MutableStateFlow(false)
+    val showPaywallLimitDialog: StateFlow<Boolean> = _showPaywallLimitDialog.asStateFlow()
+
     private val voiceSettingsFlow = combine(userPrefs.voiceGenderFlow, userPrefs.voicePresetFlow) { gender, preset ->
         UserVoice(gender, preset)
     }
@@ -252,7 +255,8 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val currentState = uiState.value
             if (!currentState.isPremium && currentState.activeReminderCount >= 2) {
-                onError("Free plan is limited to 2 active reminders. Upgrade to Premium for unlimited reminders!")
+                _showPaywallLimitDialog.value = true
+                onError("Free plan is limited to 2 active reminders. Upgrade for just ₹40/month (or $4.99/year) to unlock unlimited voice reminders.")
                 return@launch
             }
 
@@ -261,6 +265,10 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             alarmScheduler.schedule(newReminder)
             onSuccess()
         }
+    }
+
+    fun dismissPaywallDialog() {
+        _showPaywallLimitDialog.value = false
     }
 
     fun updateReminder(reminder: ReminderEntity) {

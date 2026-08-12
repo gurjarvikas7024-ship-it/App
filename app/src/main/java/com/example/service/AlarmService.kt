@@ -47,6 +47,18 @@ class AlarmService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Acquire temporary Partial WakeLock for 60 seconds to prevent CPU sleep
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            wakeLock = powerManager?.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "MemoryPlus:AlarmServiceWakeLock"
+            )
+            wakeLock?.acquire(60 * 1000L) // 60s partial wake lock
+        } catch (e: Exception) {
+            Log.e("AlarmService", "Failed to acquire wake lock", e)
+        }
+
         val id = intent?.getLongExtra(EXTRA_REMINDER_ID, -1L) ?: -1L
         val title = intent?.getStringExtra(EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
         val script = intent?.getStringExtra(EXTRA_REMINDER_SCRIPT) ?: ""
