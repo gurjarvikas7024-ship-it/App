@@ -2,12 +2,9 @@ package com.example.ui.alarm
 
 import android.app.KeyguardManager
 import android.content.Context
-import android.media.Ringtone
-import android.media.RingtoneManager
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,21 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.db.AppDatabase
-import com.example.data.repository.ReminderRepository
 import com.example.receiver.ReminderReceiver
-import com.example.service.AlarmScheduler
+import com.example.service.AlarmService
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.OceanBlueAccent
 import com.example.ui.theme.SkyBlueContainer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 open class AlarmActivity : ComponentActivity() {
-
-    private var ringtone: Ringtone? = null
-    private var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,45 +46,26 @@ open class AlarmActivity : ComponentActivity() {
         val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
         val description = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT) ?: ""
 
-        // Sound & Continuous Loop Vibration until user Snoozes/Dismisses
-        startAlarmEffects()
-
         setContent {
             MyApplicationTheme {
                 AlarmFullScreenContent(
                     title = reminderTitle,
                     notes = description,
                     onSnooze = { snoozeMinutes ->
-                        stopEffects()
-                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-                        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
-                        if (reminderId != -1L) {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                val db = AppDatabase.getInstance(applicationContext)
-                                val repo = ReminderRepository(db.reminderDao())
-                                val scheduler = AlarmScheduler(applicationContext)
-                                val reminder = repo.getReminderById(reminderId)
-                                if (reminder != null) {
-                                    val snoozedTime = System.currentTimeMillis() + (snoozeMinutes * 60 * 1000L)
-                                    val updated = reminder.copy(timeMillis = snoozedTime)
-                                    repo.updateReminder(updated)
-                                    scheduler.schedule(updated)
-                                }
-                            }
+                        val snoozeIntent = Intent(applicationContext, AlarmService::class.java).apply {
+                            action = AlarmService.ACTION_SNOOZE_ALARM
+                            putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
+                            putExtra(AlarmService.EXTRA_SNOOZE_MINUTES, snoozeMinutes)
                         }
+                        startService(snoozeIntent)
                         finish()
                     },
                     onDismiss = {
-                        stopEffects()
-                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-                        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
-                        if (reminderId != -1L) {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                val db = AppDatabase.getInstance(applicationContext)
-                                val repo = ReminderRepository(db.reminderDao())
-                                repo.markCompleted(reminderId)
-                            }
+                        val dismissIntent = Intent(applicationContext, AlarmService::class.java).apply {
+                            action = AlarmService.ACTION_DISMISS_ALARM
+                            putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
                         }
+                        startService(dismissIntent)
                         finish()
                     }
                 )
@@ -103,7 +73,7 @@ open class AlarmActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         enforceScreenOvertake()
@@ -113,9 +83,9 @@ open class AlarmActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
-            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
             try {
-                keyguardManager.requestDismissKeyguard(this, null)
+                keyguardManager?.requestDismissKeyguard(this, null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -134,41 +104,8 @@ open class AlarmActivity : ComponentActivity() {
             e.printStackTrace()
         }
     }
-
-    private fun startAlarmEffects() {
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            ringtone = RingtoneManager.getRingtone(applicationContext, alarmUri)
-            ringtone?.play()
-
-            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            val pattern = longArrayOf(0, 1000, 500, 1000, 500)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0)) // 0 means repeat indefinitely until canceled
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopEffects() {
-        try {
-            ringtone?.stop()
-            vibrator?.cancel()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopEffects()
-    }
 }
+
 
 @Composable
 fun AlarmFullScreenContent(

@@ -43,6 +43,7 @@ class AlarmScheduler(private val context: Context) {
                 )
                 putExtra(ReminderReceiver.EXTRA_REMINDER_ID, reminder.id)
                 putExtra(ReminderReceiver.EXTRA_REMINDER_TITLE, reminder.title)
+                putExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT, reminder.customVoiceScript)
             }
 
             val showPendingIntent = PendingIntent.getActivity(
@@ -52,12 +53,24 @@ class AlarmScheduler(private val context: Context) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // AlarmClockInfo guarantees system-level hardware alarm execution, bypassing Doze Mode
+            // Exact AlarmClockInfo ensures the Android OS hardware timer wakes up the CPU instantly
+            // even in deep Doze mode, on table idle, or battery saver
             val alarmClockInfo = AlarmManager.AlarmClockInfo(reminder.timeMillis, showPendingIntent)
-            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
-            Log.d("AlarmScheduler", "Exact Hardware AlarmClock scheduled for ID ${reminder.id} at ${reminder.timeMillis}")
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                    Log.d("AlarmScheduler", "Exact Hardware setAlarmClock scheduled for ID ${reminder.id} at ${reminder.timeMillis}")
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.timeMillis, pendingIntent)
+                    Log.d("AlarmScheduler", "Exact setExactAndAllowWhileIdle scheduled for ID ${reminder.id} at ${reminder.timeMillis}")
+                }
+            } else {
+                alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                Log.d("AlarmScheduler", "Pre-Android S setAlarmClock scheduled for ID ${reminder.id} at ${reminder.timeMillis}")
+            }
         } catch (e: Exception) {
-            Log.e("AlarmScheduler", "Failed setAlarmClock, trying fallback setAndAllowWhileIdle", e)
+            Log.e("AlarmScheduler", "Failed primary scheduling, trying fallback RTC_WAKEUP", e)
             try {
                 val intent = Intent(context, AlarmReceiver::class.java).apply {
                     action = ReminderReceiver.ACTION_TRIGGER_REMINDER
@@ -72,9 +85,9 @@ class AlarmScheduler(private val context: Context) {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                alarmManager?.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.timeMillis, pendingIntent)
+                alarmManager?.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.timeMillis, pendingIntent)
             } catch (ex: Exception) {
-                Log.e("AlarmScheduler", "Fallback scheduling failed", ex)
+                Log.e("AlarmScheduler", "Fallback scheduling failed completely", ex)
             }
         }
     }
@@ -97,3 +110,4 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 }
+

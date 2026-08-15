@@ -1,5 +1,12 @@
 package com.example.ui.screens
 
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,9 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.OceanBlueAccent
+import com.example.ui.theme.SkyBlueContainer
 import com.example.ui.viewmodel.UiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +36,27 @@ fun SettingsProfileScreen(
     onOpenPaywall: () -> Unit
 ) {
     var nameInput by remember(uiState.userName) { mutableStateOf(uiState.userName) }
+    val context = LocalContext.current
+
+    val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }
+    val isBatteryOptimized = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            powerManager?.isIgnoringBatteryOptimizations(context.packageName) == false
+        } else false
+    }
+
+    val canDrawOverlays = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else true
+    }
+
+    val canScheduleExact = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+            alarmManager?.canScheduleExactAlarms() == true
+        } else true
+    }
 
     Scaffold(
         topBar = {
@@ -76,6 +107,128 @@ fun SettingsProfileScreen(
                 }
             }
 
+            // Reliable 100% On-Time Alarms Configuration Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = SkyBlueContainer)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Bolt, contentDescription = null, tint = OceanBlueAccent)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Zero-Delay Alarm Optimization",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = OceanBlueAccent
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Ensure exact on-time ringing when phone screen is locked or while using apps like Facebook & Instagram.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Battery Unrestricted
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Background Battery Saver", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                if (isBatteryOptimized) "Optimized (May delay alarms when idle)" else "Unrestricted (Instant alarms guaranteed)",
+                                fontSize = 11.sp,
+                                color = if (isBatteryOptimized) MaterialTheme.colorScheme.error else OceanBlueAccent
+                            )
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                try {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                } catch (e: Exception) {
+                                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                    context.startActivity(intent)
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(if (isBatteryOptimized) "Disable" else "Allowed", fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Draw Over Other Apps / Pop-up
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Display Over Other Apps", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                if (canDrawOverlays) "Granted (Full screen popup enabled)" else "Permission needed for full screen popup over FB/Insta",
+                                fontSize = 11.sp,
+                                color = if (canDrawOverlays) OceanBlueAccent else MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(if (canDrawOverlays) "Active" else "Enable", fontSize = 12.sp)
+                        }
+                    }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canScheduleExact) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Exact Alarms Permission", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("Required for exact second alarms", fontSize = 11.sp, color = MaterialTheme.colorScheme.error)
+                            }
+                            FilledTonalButton(
+                                onClick = {
+                                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(intent)
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Grant", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Alarm & Notification Preferences Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -86,7 +239,7 @@ fun SettingsProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = OceanBlueAccent)
                         Spacer(modifier = Modifier.width(10.dp))
                         Text("Alarm & Alert Features", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
@@ -154,3 +307,4 @@ fun SettingsProfileScreen(
         }
     }
 }
+
