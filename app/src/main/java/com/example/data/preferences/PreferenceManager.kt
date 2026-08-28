@@ -6,40 +6,38 @@ import android.content.SharedPreferences
 object PreferenceManager {
 
     const val PREFS_NAME = "MemoryPlusPrefs"
+    const val KEY_LIFETIME_ACTIONS_COUNT = "lifetime_actions_count"
     const val KEY_LIFETIME_REMINDERS_CREATED = "lifetime_reminders_created"
     const val KEY_REMINDERS_COUNT = "reminders_count"
     const val KEY_IS_PRO_UNLOCKED = "is_pro_unlocked"
     const val SECRET_PRO_KEY = "MP2026PRO"
     const val MAX_FREE_REMINDERS = 2
+    const val MAX_FREE_ACTIONS = 2
 
     fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     @JvmStatic
-    fun getLifetimeRemindersCreated(context: Context): Int {
+    fun getLifetimeActionsCount(context: Context): Int {
         val prefs = getPrefs(context)
-        val lifetime = prefs.getInt(KEY_LIFETIME_REMINDERS_CREATED, -1)
-        if (lifetime != -1) {
-            return lifetime
+        val actions = prefs.getInt(KEY_LIFETIME_ACTIONS_COUNT, -1)
+        if (actions != -1) {
+            return actions
         }
-        // Fallback/migration from previous key if present
-        val legacy = prefs.getInt(KEY_REMINDERS_COUNT, 0)
-        prefs.edit().putInt(KEY_LIFETIME_REMINDERS_CREATED, legacy).apply()
-        return legacy
+        // Fallback/migration from previous keys if present
+        val legacyCreated = prefs.getInt(KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(KEY_REMINDERS_COUNT, 0))
+        prefs.edit().putInt(KEY_LIFETIME_ACTIONS_COUNT, legacyCreated).apply()
+        return legacyCreated
     }
 
     @JvmStatic
-    fun getRemindersCount(context: Context): Int {
-        return getLifetimeRemindersCreated(context)
-    }
-
-    @JvmStatic
-    fun incrementLifetimeRemindersCreated(context: Context): Int {
+    fun incrementLifetimeActions(context: Context): Int {
         val prefs = getPrefs(context)
-        val current = prefs.getInt(KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(KEY_REMINDERS_COUNT, 0))
+        val current = getLifetimeActionsCount(context)
         val next = current + 1
         prefs.edit()
+            .putInt(KEY_LIFETIME_ACTIONS_COUNT, next)
             .putInt(KEY_LIFETIME_REMINDERS_CREATED, next)
             .putInt(KEY_REMINDERS_COUNT, next)
             .apply()
@@ -47,8 +45,23 @@ object PreferenceManager {
     }
 
     @JvmStatic
+    fun getLifetimeRemindersCreated(context: Context): Int {
+        return getLifetimeActionsCount(context)
+    }
+
+    @JvmStatic
+    fun getRemindersCount(context: Context): Int {
+        return getLifetimeActionsCount(context)
+    }
+
+    @JvmStatic
+    fun incrementLifetimeRemindersCreated(context: Context): Int {
+        return incrementLifetimeActions(context)
+    }
+
+    @JvmStatic
     fun incrementRemindersCount(context: Context): Int {
-        return incrementLifetimeRemindersCreated(context)
+        return incrementLifetimeActions(context)
     }
 
     @JvmStatic
@@ -62,21 +75,26 @@ object PreferenceManager {
     }
 
     @JvmStatic
-    fun canCreateReminder(context: Context): Boolean {
+    fun canPerformAction(context: Context): Boolean {
         val prefs = getPrefs(context)
         val isPro = prefs.getBoolean(KEY_IS_PRO_UNLOCKED, false)
         if (isPro) {
             return true
         }
-        val totalCreated = prefs.getInt(KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(KEY_REMINDERS_COUNT, 0))
-        return totalCreated < MAX_FREE_REMINDERS
+        val actionCount = getLifetimeActionsCount(context)
+        return actionCount < MAX_FREE_ACTIONS
+    }
+
+    @JvmStatic
+    fun canCreateReminder(context: Context): Boolean {
+        return canPerformAction(context)
     }
 
     @JvmStatic
     fun getRemainingFreeReminders(context: Context): Int {
         if (isProUnlocked(context)) return Int.MAX_VALUE
-        val count = getLifetimeRemindersCreated(context)
-        return (MAX_FREE_REMINDERS - count).coerceAtLeast(0)
+        val count = getLifetimeActionsCount(context)
+        return (MAX_FREE_ACTIONS - count).coerceAtLeast(0)
     }
 
     @JvmStatic

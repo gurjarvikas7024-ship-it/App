@@ -1,13 +1,16 @@
 package com.example.ui.paywall
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,15 +38,18 @@ import androidx.compose.ui.unit.sp
 import com.example.data.preferences.PreferenceManager
 import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.MyApplicationTheme
-import com.razorpay.Checkout
-import com.razorpay.PaymentResultListener
-import org.json.JSONObject
+import java.util.Locale
 
-class PaywallActivity : ComponentActivity(), PaymentResultListener {
+class PaywallActivity : ComponentActivity() {
 
     companion object {
-        // Razorpay API Key ID (Replace with your actual Razorpay Key rzp_live_xxx or rzp_test_xxx)
-        const val RAZORPAY_KEY_ID = "rzp_live_R4Z0RP4YK3Y1D"
+        const val UPI_PA = "7024991656@ybl"
+        const val UPI_PN = "Memory Plus"
+        const val UPI_AM = "399"
+        const val UPI_CU = "INR"
+        const val UPI_TN = "Memory Plus Pro Upgrade"
+
+        val UPI_URI_STRING: String = "upi://pay?pa=$UPI_PA&pn=Memory%20Plus&am=$UPI_AM&cu=$UPI_CU&tn=Memory%20Plus%20Pro%20Upgrade"
 
         fun start(context: Context) {
             val intent = Intent(context, PaywallActivity::class.java).apply {
@@ -52,21 +59,27 @@ class PaywallActivity : ComponentActivity(), PaymentResultListener {
         }
     }
 
+    // 1. UPI Activity Result Launcher
+    private val upiPaymentLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        handleUpiPaymentResult(result.resultCode, result.data)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Preload Razorpay Checkout for ultra-fast launch
-        try {
-            Checkout.preload(applicationContext)
-        } catch (e: Exception) {
-            Log.e("PaywallActivity", "Razorpay preload exception", e)
-        }
 
         setContent {
             MyApplicationTheme(darkTheme = true) {
                 PaywallScreenContent(
                     onPayClicked = {
-                        startRazorpayPayment()
+                        launchUpiPaymentIntent()
+                    },
+                    onCheckStatusClicked = {
+                        showFailsafeStatusDialog()
+                    },
+                    onEnterKeyClicked = {
+                        showSecretKeyDialog()
                     }
                 )
             }
@@ -74,80 +87,160 @@ class PaywallActivity : ComponentActivity(), PaymentResultListener {
     }
 
     /**
-     * Trigger Razorpay Checkout for automated in-app payment unlock
+     * Secret Key Fallback Dialog
      */
-    private fun startRazorpayPayment() {
-        val checkout = Checkout()
-        checkout.setKeyID(RAZORPAY_KEY_ID)
-
-        try {
-            val options = JSONObject().apply {
-                put("name", "Memory Plus")
-                put("description", "Memory Plus Pro - Lifetime Unlimited Access")
-                put("currency", "INR")
-                put("amount", 39900) // ₹399 in paise (399 * 100)
-
-                // Theme customization
-                val theme = JSONObject()
-                theme.put("color", "#059669")
-                put("theme", theme)
-
-                // Retry configuration
-                val retryObj = JSONObject()
-                retryObj.put("enabled", true)
-                retryObj.put("max_count", 4)
-                put("retry", retryObj)
-
-                // Prefill user details (optional)
-                val prefill = JSONObject()
-                prefill.put("email", "support@memoryplus.app")
-                put("prefill", prefill)
+    private fun showSecretKeyDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "Enter Pro Activation Key"
+            setPadding(48, 32, 48, 32)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Enter Pro Key")
+            .setView(input)
+            .setPositiveButton("Activate") { dialog, _ ->
+                val key = input.text.toString().trim()
+                if (PreferenceManager.verifyAndUnlockSecretKey(this, key)) {
+                    Toast.makeText(this, "Pro Unlocked Successfully 🎉", Toast.LENGTH_LONG).show()
+                    dialog.dismiss()
+                    setResult(Activity.RESULT_OK)
+                    finish()
+                } else {
+                    Toast.makeText(this, "Invalid Activation Key", Toast.LENGTH_SHORT).show()
+                }
             }
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
 
-            checkout.open(this@PaywallActivity, options)
+    /**
+     * Launch Native UPI Payment Intent
+     */
+    private fun launchUpiPaymentIntent() {
+        try {
+            val uri = Uri.parse(UPI_URI_STRING)
+            val upiIntent = Intent(Intent.ACTION_VIEW, uri)
+            val chooser = Intent.createChooser(upiIntent, "Pay ₹399 via UPI App")
+
+            if (upiIntent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
+                upiPaymentLauncher.launch(chooser)
+            } else {
+                // Fallback attempt without chooser if chooser resolution is strict
+                try {
+                    upiPaymentLauncher.launch(upiIntent)
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        this,
+                        "No supported UPI App (PhonePe, GPay, Paytm) found on device.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         } catch (e: Exception) {
-            Log.e("PaywallActivity", "Error initiating Razorpay checkout", e)
-            Toast.makeText(this, "Error starting payment: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Log.e("PaywallActivity", "Error starting UPI intent", e)
+            Toast.makeText(this, "Failed to launch UPI payment: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
 
     /**
-     * 100% Automated Unlock upon successful payment
+     * 2. Automatic Unlock on UPI Success Response
      */
-    override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        Log.d("PaywallActivity", "Payment Successful. Payment ID: $razorpayPaymentID")
-        
-        // 1. Permanently unlock Pro in SharedPreferences
-        PreferenceManager.setProUnlocked(this, true)
+    private fun handleUpiPaymentResult(resultCode: Int, data: Intent?) {
+        val response = data?.getStringExtra("response") ?: ""
+        Log.d("PaywallActivity", "UPI Response: $response | resultCode: $resultCode")
 
-        // 2. Show celebration Toast
-        Toast.makeText(
-            this,
-            "Payment Successful! Pro Features Unlocked 🎉",
-            Toast.LENGTH_LONG
-        ).show()
+        if (isUpiSuccess(response, resultCode)) {
+            // 1. Update SharedPreferences ("MemoryPlusPrefs"): is_pro_unlocked = true
+            PreferenceManager.setProUnlocked(this, true)
 
-        // 3. Immediately finish PaywallActivity and return with full access
-        setResult(Activity.RESULT_OK)
-        finish()
+            // 2. Show Toast
+            Toast.makeText(
+                this,
+                "Payment Successful! Pro Features Unlocked 🎉",
+                Toast.LENGTH_LONG
+            ).show()
+
+            // 3. Close PaywallActivity immediately and return to MainActivity
+            setResult(Activity.RESULT_OK)
+            finish()
+        } else {
+            Toast.makeText(
+                this,
+                "Payment failed or cancelled. Please try again.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     /**
-     * Handle payment cancellation or failure
+     * Helper to parse UPI key-values and statuses
      */
-    override fun onPaymentError(code: Int, response: String?) {
-        Log.e("PaywallActivity", "Payment Error: Code $code, Response: $response")
-        Toast.makeText(
-            this,
-            "Payment cancelled or failed. Please try again.",
-            Toast.LENGTH_SHORT
-        ).show()
+    private fun isUpiSuccess(response: String, resultCode: Int): Boolean {
+        if (response.isBlank()) {
+            return false
+        }
+
+        val cleanResponse = response.lowercase(Locale.ROOT)
+
+        // Parse key=value pairs standard in NPCI UPI responses
+        val params = response.split("&").associate { entry ->
+            val parts = entry.split("=")
+            if (parts.size == 2) parts[0].trim().lowercase(Locale.ROOT) to parts[1].trim().lowercase(Locale.ROOT)
+            else parts[0].trim().lowercase(Locale.ROOT) to ""
+        }
+
+        val status = params["status"] ?: ""
+        val responseCode = params["responsecode"] ?: ""
+        val txnStatus = params["txnstatus"] ?: ""
+
+        if (status.contains("success") || status.contains("submitted") ||
+            txnStatus.contains("success") || txnStatus.contains("submitted") ||
+            responseCode == "00" || responseCode == "0"
+        ) {
+            return true
+        }
+
+        // Direct containment fallback check
+        if (cleanResponse.contains("status=success") ||
+            cleanResponse.contains("status=submitted") ||
+            cleanResponse.contains("responsecode=00") ||
+            cleanResponse.contains("txnstatus=success")
+        ) {
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * 3. Failsafe Confirmation Dialog
+     */
+    private fun showFailsafeStatusDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Check UPI Payment Status")
+            .setMessage("Did you complete the ₹399 payment via PhonePe / GPay / Paytm / UPI?")
+            .setPositiveButton("Yes, I Paid (Unlock Pro)") { dialog, _ ->
+                PreferenceManager.setProUnlocked(this, true)
+                Toast.makeText(
+                    this,
+                    "Payment Confirmed! Pro Features Unlocked 🎉",
+                    Toast.LENGTH_LONG
+                ).show()
+                dialog.dismiss()
+                setResult(Activity.RESULT_OK)
+                finish()
+            }
+            .setNegativeButton("Not Yet") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 }
 
 @Composable
 fun PaywallScreenContent(
-    onPayClicked: () -> Unit
+    onPayClicked: () -> Unit,
+    onCheckStatusClicked: () -> Unit,
+    onEnterKeyClicked: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -156,17 +249,34 @@ fun PaywallScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 1. Top Banner / Badge: 2-Day Limited Time Offer
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFFEA580C)
+            ) {
+                Text(
+                    text = "🔥 LIMITED TIME LAUNCH OFFER (2 DAYS ONLY)",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Lock Graphic Icon
             Box(
                 modifier = Modifier
-                    .size(84.dp)
+                    .size(72.dp)
                     .clip(CircleShape)
                     .background(
                         brush = Brush.linearGradient(
@@ -179,74 +289,160 @@ fun PaywallScreenContent(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Lock Icon",
                     tint = Color.White,
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Header
             Text(
                 text = "Memory Plus Pro - Upgrade Required",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Subtitle
             Text(
-                text = "You have reached the limit of 2 free reminders. Upgrade to unlock unlimited voice reminders forever.",
+                text = "You have reached the limit of 2 free reminders/actions. Upgrade to unlock unlimited voice reminders & edits forever.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF94A3B8),
                 textAlign = TextAlign.Center,
-                lineHeight = 20.sp
+                lineHeight = 18.sp
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Feature List Card
+            // 2. Pricing Display Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                 border = BorderStroke(1.dp, Color(0xFF334155))
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    PaywallFeatureRow("Unlimited Alarms & Voice Notes")
+                    // Original Price (Strikethrough)
+                    Text(
+                        text = "₹999 / Year",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                        ),
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF94A3B8)
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Deal Price (Large Bold Green)
+                    Text(
+                        text = "₹399 Lifetime Access",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF10B981)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Savings Note
+                    Text(
+                        text = "Save 60% — Pay Once, Use Forever",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AmberAccent
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Feature List Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                border = BorderStroke(1.dp, Color(0xFF334155))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PaywallFeatureRow("Unlimited Alarms, Edits & Voice Notes")
                     PaywallFeatureRow("1-Tap AI Natural Voice Input")
                     PaywallFeatureRow("Battery-Optimized 0s Delay Alarms")
                     PaywallFeatureRow("Lifetime Access (100% Instant Auto-Unlock)")
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Razorpay 1-Tap Checkout Button (UPI / PhonePe / GPay / Cards / Paytm)
+            // 3. Action Button Update
             Button(
                 onClick = onPayClicked,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
+                    .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
             ) {
                 Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White)
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Pay ₹399 via UPI / PhonePe / GPay",
-                    fontSize = 15.sp,
+                    text = "Unlock Lifetime Access for ₹399 (PhonePe / UPI)",
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Button 2: Failsafe Confirmation Button
+            TextButton(
+                onClick = onCheckStatusClicked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VerifiedUser,
+                    contentDescription = null,
+                    tint = Color(0xFF38BDF8),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Already paid via UPI? Check Status",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF38BDF8)
+                )
+            }
+
+            // Button 3: Secret Activation Key Button
+            TextButton(
+                onClick = onEnterKeyClicked,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+            ) {
+                Text(
+                    text = "Have an Activation Key?",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Secure Payment Badge
             Row(
@@ -257,18 +453,18 @@ fun PaywallScreenContent(
                     imageVector = Icons.Default.Security,
                     contentDescription = null,
                     tint = Color(0xFF64748B),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "100% Secure Checkout via Razorpay • Instant Unlock",
-                    fontSize = 12.sp,
+                    text = "Direct UPI Instant Verification • Lifetime Access",
+                    fontSize = 11.sp,
                     color = Color(0xFF64748B),
                     fontWeight = FontWeight.Medium
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

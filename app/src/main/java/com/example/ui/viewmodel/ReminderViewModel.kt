@@ -308,11 +308,11 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             val app = getApplication<Application>()
             val prefs = app.getSharedPreferences(PreferenceManager.PREFS_NAME, android.content.Context.MODE_PRIVATE)
             val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
-            val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+            val actionCount = PreferenceManager.getLifetimeActionsCount(app)
 
-            if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+            if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
                 _showPaywallLimitDialog.value = true
-                onError("Free trial limit reached! Upgrade to Pro.")
+                onError("Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.")
                 return@launch
             }
 
@@ -333,10 +333,32 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         _showPaywallLimitDialog.value = false
     }
 
-    fun updateReminder(reminder: ReminderEntity) {
+    fun updateReminder(
+        reminder: ReminderEntity,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
         viewModelScope.launch {
-            repository.updateReminder(reminder)
-            alarmScheduler.schedule(reminder)
+            val app = getApplication<Application>()
+            val prefs = app.getSharedPreferences(PreferenceManager.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+            val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+            val actionCount = PreferenceManager.getLifetimeActionsCount(app)
+
+            if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
+                _showPaywallLimitDialog.value = true
+                onError("Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.")
+                return@launch
+            }
+
+            try {
+                repository.updateReminderWithLimit(app, reminder)
+                alarmScheduler.schedule(reminder)
+                refreshPreferences()
+                onSuccess()
+            } catch (e: Exception) {
+                _showPaywallLimitDialog.value = true
+                onError(e.message ?: "Free trial limit reached! Upgrade to Pro.")
+            }
         }
     }
 

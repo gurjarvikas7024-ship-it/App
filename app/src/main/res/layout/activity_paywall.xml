@@ -9,14 +9,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="20dp"
         android:gravity="center_horizontal">
+
+        <!-- Top Banner / Badge: Limited-Time Launch Offer -->
+        <LinearLayout
+            android:id="@+id/ll_offer_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#EA580C"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tv_offer_badge_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔥 LIMITED TIME LAUNCH OFFER (2 DAYS ONLY)"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/iv_lock_icon"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_marginTop="28dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="16dp"
             android:src="@android:drawable/ic_lock_idle_alarm"
             android:tint="#F59E0B"
             android:contentDescription="Upgrade Required" />
@@ -25,10 +49,10 @@
             android:id="@+id/tv_paywall_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:text="Memory Plus Pro - Upgrade Required"
             android:textColor="#FFFFFF"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             android:textAlignment="center" />
 
@@ -36,90 +60,132 @@
             android:id="@+id/tv_paywall_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="You have reached the limit of 2 free reminders. Upgrade to unlock unlimited voice reminders."
+            android:layout_marginTop="6dp"
+            android:text="You have reached the limit of 2 free reminders/actions. Upgrade to unlock unlimited voice reminders &amp; edits forever."
             android:textColor="#94A3B8"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textAlignment="center"
-            android:lineSpacingExtra="4dp" />
+            android:lineSpacingExtra="3dp" />
+
+        <!-- Pricing Display Card -->
+        <LinearLayout
+            android:id="@+id/ll_pricing_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="#1E293B"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center_horizontal">
+
+            <!-- Original Price (Strikethrough) -->
+            <TextView
+                android:id="@+id/tv_original_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₹999 / Year"
+                android:textColor="#94A3B8"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Deal Price (Large Bold Green) -->
+            <TextView
+                android:id="@+id/tv_deal_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="₹399 Lifetime Access"
+                android:textColor="#10B981"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <!-- Savings Note -->
+            <TextView
+                android:id="@+id/tv_savings_note"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Save 60% — Pay Once, Use Forever"
+                android:textColor="#F59E0B"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- Feature List Card -->
         <LinearLayout
             android:id="@+id/ll_features_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="14dp"
             android:background="#1E293B"
             android:orientation="vertical"
-            android:padding="18dp">
+            android:padding="16dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Unlimited Alarms"
+                android:text="✓ Unlimited Alarms, Edits &amp; Voice Notes"
                 android:textColor="#E2E8F0"
-                android:textSize="15sp"
-                android:layout_marginBottom="10dp" />
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ 1-Tap AI Voice Input"
+                android:text="✓ 1-Tap AI Natural Voice Input"
                 android:textColor="#E2E8F0"
-                android:textSize="15sp"
-                android:layout_marginBottom="10dp" />
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Battery-Optimized Alarms"
+                android:text="✓ Battery-Optimized 0s Delay Alarms"
                 android:textColor="#E2E8F0"
-                android:textSize="15sp"
-                android:layout_marginBottom="10dp" />
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Lifetime Access"
+                android:text="✓ Lifetime Access (100% Instant Auto-Unlock)"
                 android:textColor="#E2E8F0"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
         </LinearLayout>
 
-        <!-- Button 1: PhonePe / GPay / UPI (India) -->
+        <!-- Button 1: UPI / PhonePe Button -->
         <Button
             android:id="@+id/btn_pay_upi"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="26dp"
+            android:layout_marginTop="20dp"
             android:backgroundTint="#059669"
-            android:text="Pay via PhonePe / Google Pay / UPI (₹399 - India)"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!-- Button 2: Stripe / Card / Apple Pay (US/UK) -->
-        <Button
-            android:id="@+id/btn_pay_stripe"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:backgroundTint="#0284C7"
-            android:text="Pay with Card / Apple Pay ($4.99 - US/UK)"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!-- Button 3: Secret Key -->
-        <Button
-            android:id="@+id/btn_enter_secret_key"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:backgroundTint="#475569"
-            android:text="Already Paid? Enter Secret Key"
+            android:text="Unlock Lifetime Access for ₹399 (PhonePe / UPI)"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />
+
+        <!-- Button 2: Failsafe Confirmation Button -->
+        <Button
+            android:id="@+id/btn_check_status"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:text="Already paid via UPI? Check Status"
+            android:textColor="#38BDF8"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Security / Info Text -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Direct UPI Instant Verification • Lifetime Access"
+            android:textColor="#64748B"
+            android:textSize="12sp"
+            android:textAlignment="center" />
 
     </LinearLayout>
 </ScrollView>
