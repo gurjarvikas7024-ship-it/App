@@ -99,13 +99,13 @@
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
-            <!-- Savings Note -->
+            <!-- Savings Note / Subtext -->
             <TextView
                 android:id="@+id/tv_savings_note"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Save 60% — Pay Once, Use Forever"
+                android:text="Pay Once • Lifetime Unlimited Reminders &amp; Edits"
                 android:textColor="#F59E0B"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -153,14 +153,14 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
-        <!-- Button 1: UPI / PhonePe Button -->
+        <!-- Button 1: UPI / PhonePe / GPay Button -->
         <Button
             android:id="@+id/btn_pay_upi"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="20dp"
             android:backgroundTint="#059669"
-            android:text="Unlock Lifetime Access for ₹399 (PhonePe / UPI)"
+            android:text="Pay ₹399 via PhonePe / GPay / UPI"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />

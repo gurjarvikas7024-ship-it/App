@@ -43,13 +43,13 @@ import java.util.Locale
 class PaywallActivity : ComponentActivity() {
 
     companion object {
-        const val UPI_PA = "7024991656@ybl"
-        const val UPI_PN = "Memory Plus"
+        const val UPI_PA = "7024991656@apl"
+        const val UPI_PN = "Uma Bai Gurjar"
         const val UPI_AM = "399"
         const val UPI_CU = "INR"
-        const val UPI_TN = "Memory Plus Pro Upgrade"
+        const val UPI_TN = "Memory Plus Pro Lifetime"
 
-        val UPI_URI_STRING: String = "upi://pay?pa=$UPI_PA&pn=Memory%20Plus&am=$UPI_AM&cu=$UPI_CU&tn=Memory%20Plus%20Pro%20Upgrade"
+        val UPI_URI_STRING: String = "upi://pay?pa=$UPI_PA&pn=Uma%20Bai%20Gurjar&am=$UPI_AM&cu=$UPI_CU&tn=Memory%20Plus%20Pro%20Lifetime"
 
         fun start(context: Context) {
             val intent = Intent(context, PaywallActivity::class.java).apply {
@@ -154,7 +154,7 @@ class PaywallActivity : ComponentActivity() {
 
             Toast.makeText(
                 this,
-                "Payment Successful! Pro Features Unlocked 🎉",
+                "Payment Successful! Memory Plus Pro Lifetime Unlocked 🎉",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -163,7 +163,7 @@ class PaywallActivity : ComponentActivity() {
         } else {
             Toast.makeText(
                 this,
-                "Payment failed or cancelled. Pro is locked.",
+                "Payment was not completed or failed. Pro features remain locked.",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -307,9 +307,9 @@ fun PaywallScreenContent(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Savings Note
+                    // Savings Note / Subtext
                     Text(
-                        text = "Save 60% — Pay Once, Use Forever",
+                        text = "Pay Once • Lifetime Unlimited Reminders & Edits",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = AmberAccent
@@ -351,8 +351,8 @@ fun PaywallScreenContent(
                 Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Unlock Lifetime Access for ₹399 (PhonePe / UPI)",
-                    fontSize = 13.5.sp,
+                    text = "Pay ₹399 via PhonePe / GPay / UPI",
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )

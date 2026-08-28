@@ -181,7 +181,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
                                         Toast.makeText(
                                             context,
-                                            "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.",
+                                            "Free trial limit reached (2/2). Upgrade to Pro for unlimited reminders.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         val intent = Intent(context, PaywallActivity::class.java)
@@ -198,7 +198,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
                                         Toast.makeText(
                                             context,
-                                            "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.",
+                                            "Free trial limit reached (2/2). Upgrade to Pro for unlimited reminders.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         val intent = Intent(context, PaywallActivity::class.java)
@@ -215,7 +215,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
                                         Toast.makeText(
                                             context,
-                                            "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.",
+                                            "Free trial limit reached (2/2). Upgrade to Pro for unlimited reminders.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         val intent = Intent(context, PaywallActivity::class.java)
@@ -240,7 +240,7 @@ class MainActivity : ComponentActivity() {
                                         // Block edit immediately and launch Paywall
                                         Toast.makeText(
                                             context,
-                                            "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.",
+                                            "Free trial limit reached (2/2). Upgrade to Pro for unlimited reminders.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         val intent = Intent(context, PaywallActivity::class.java)
