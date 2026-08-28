@@ -84,7 +84,12 @@ class MainActivity : ComponentActivity() {
 
                     if (!spokenText.isNullOrBlank()) {
                         // Check limit before saving parsed reminder
-                        if (!PreferenceManager.canCreateReminder(context)) {
+                        val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
+                        val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+                        val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+
+                        if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+                            Toast.makeText(context, "Free trial limit reached! Upgrade to Pro.", Toast.LENGTH_SHORT).show()
                             PaywallActivity.start(context)
                             return@rememberLauncherForActivityResult
                         }
@@ -166,27 +171,46 @@ class MainActivity : ComponentActivity() {
                                 onSelectTab = { viewModel.selectTab(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 on1TapMic = {
-                                    // MODULE 3: 1-Tap Mic action with guard
-                                    if (!PreferenceManager.canCreateReminder(context)) {
-                                        PaywallActivity.start(context)
-                                    } else {
-                                        startNativeSpeechRecognizer(speechRecognizerLauncher)
+                                    // PRE-ACTION HARD BLOCK: Check lifetime persistent counter before opening Mic
+                                    val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+                                    val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+
+                                    if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+                                        // Show Paywall Immediately and DO NOT open Mic/Input
+                                        val intent = Intent(context, PaywallActivity::class.java)
+                                        context.startActivity(intent)
+                                        return@HomeScreen
                                     }
+
+                                    startNativeSpeechRecognizer(speechRecognizerLauncher)
                                 },
                                 onOpenVoiceDialog = {
-                                    if (!PreferenceManager.canCreateReminder(context)) {
-                                        PaywallActivity.start(context)
-                                    } else {
-                                        showVoiceModal = true
+                                    val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+                                    val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+
+                                    if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+                                        val intent = Intent(context, PaywallActivity::class.java)
+                                        context.startActivity(intent)
+                                        return@HomeScreen
                                     }
+
+                                    showVoiceModal = true
                                 },
                                 onOpenAddReminder = {
-                                    if (!PreferenceManager.canCreateReminder(context)) {
-                                        PaywallActivity.start(context)
-                                    } else {
-                                        editingReminder = null
-                                        navController.navigate("add_edit")
+                                    val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+                                    val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+
+                                    if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+                                        val intent = Intent(context, PaywallActivity::class.java)
+                                        context.startActivity(intent)
+                                        return@HomeScreen
                                     }
+
+                                    editingReminder = null
+                                    navController.navigate("add_edit")
                                 },
                                 onOpenCalendar = { navController.navigate("calendar") },
                                 onOpenSettings = { navController.navigate("settings") },
@@ -208,10 +232,22 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onSave = { reminder ->
                                     if (editingReminder == null) {
+                                        // PRE-SAVE HARD BLOCK
+                                        val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
+                                        val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
+                                        val totalCreated = prefs.getInt(PreferenceManager.KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(PreferenceManager.KEY_REMINDERS_COUNT, 0))
+
+                                        if (!isPro && totalCreated >= PreferenceManager.MAX_FREE_REMINDERS) {
+                                            Toast.makeText(context, "Free trial limit reached! Upgrade to Pro.", Toast.LENGTH_SHORT).show()
+                                            PaywallActivity.start(context)
+                                            return@AddEditReminderScreen
+                                        }
+
                                         viewModel.addReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
                                             onError = {
+                                                Toast.makeText(context, "Free trial limit reached! Upgrade to Pro.", Toast.LENGTH_SHORT).show()
                                                 PaywallActivity.start(context)
                                             }
                                         )
