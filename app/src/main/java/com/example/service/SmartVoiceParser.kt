@@ -1,6 +1,7 @@
 package com.example.service
 
 import com.example.data.model.ReminderEntity
+import com.example.data.model.RepeatType
 import java.util.*
 import java.util.regex.Pattern
 
@@ -8,7 +9,8 @@ data class ParsedVoiceData(
     val title: String,
     val timeMillis: Long,
     val cleanPrompt: String,
-    val voiceScript: String
+    val voiceScript: String,
+    val repeatType: String = RepeatType.ONCE.name
 )
 
 object SmartVoiceParser {
@@ -20,9 +22,13 @@ object SmartVoiceParser {
         val prompt = rawPrompt.trim()
         val lower = prompt.lowercase(Locale.ROOT)
 
-        val calendar = Calendar.getInstance()
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
         var matchedTime = false
         var cleanedTitle = prompt
+        var isDaily = lower.contains("daily") || lower.contains("har roz") || lower.contains("har din") || lower.contains("rozana") || lower.contains("every day")
 
         // 1. Check relative minutes ("in 10 minutes", "10 minute baad", "after 15 mins")
         val relMinPattern = Pattern.compile("(\\d+)\\s*(?:minutes?|mins?|minute|min)\\s*(?:baad|after|later)?", Pattern.CASE_INSENSITIVE)
@@ -30,6 +36,8 @@ object SmartVoiceParser {
         if (relMinMatcher.find()) {
             val mins = relMinMatcher.group(1)?.toIntOrNull() ?: 10
             calendar.add(Calendar.MINUTE, mins)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
             cleanedTitle = lower.replace(relMinMatcher.group(0) ?: "", "").replace("in ", "").trim()
             matchedTime = true
         }
@@ -41,6 +49,8 @@ object SmartVoiceParser {
             if (relHourMatcher.find()) {
                 val hrs = relHourMatcher.group(1)?.toIntOrNull() ?: 1
                 calendar.add(Calendar.HOUR_OF_DAY, hrs)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
                 cleanedTitle = lower.replace(relHourMatcher.group(0) ?: "", "").replace("in ", "").trim()
                 matchedTime = true
             }
@@ -114,6 +124,7 @@ object SmartVoiceParser {
                 calendar.set(Calendar.HOUR_OF_DAY, 21) // 9:00 PM default tonight
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
                 matchedTime = true
             }
         }
@@ -123,7 +134,8 @@ object SmartVoiceParser {
             "remind me to", "remind me", "set a reminder for", "set reminder to",
             "set reminder for", "set alarm for", "alarm for", "mujhe yaad dilana",
             "yaad dilana", "baje", "subah", "sham", "shaam", "dopahar", "raat",
-            "at", "on", "for", "ki", "ko", "par", "please"
+            "at", "on", "for", "ki", "ko", "par", "please", "daily", "every day",
+            "rozana", "har roz", "har din"
         )
         for (w in removeWords) {
             cleanedTitle = cleanedTitle.replace(Pattern.compile("\\b$w\\b", Pattern.CASE_INSENSITIVE).toRegex(), " ")
@@ -148,7 +160,9 @@ object SmartVoiceParser {
             title = cleanedTitle,
             timeMillis = calendar.timeInMillis,
             cleanPrompt = prompt,
-            voiceScript = voiceScript
+            voiceScript = voiceScript,
+            repeatType = if (isDaily) RepeatType.DAILY.name else RepeatType.ONCE.name
         )
     }
 }
+

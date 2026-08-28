@@ -43,6 +43,8 @@ fun AddEditReminderScreen(
             } else {
                 add(Calendar.HOUR_OF_DAY, 1)
             }
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
     }
 
@@ -59,6 +61,8 @@ fun AddEditReminderScreen(
             calendar.set(Calendar.YEAR, year)
             calendar.set(Calendar.MONTH, month)
             calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
             selectedDateText = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(calendar.time)
         },
         calendar.get(Calendar.YEAR),
@@ -72,6 +76,7 @@ fun AddEditReminderScreen(
             calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
             calendar.set(Calendar.MINUTE, minute)
             calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
             selectedTimeText = SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(calendar.time)
         },
         calendar.get(Calendar.HOUR_OF_DAY),
@@ -116,32 +121,6 @@ fun AddEditReminderScreen(
                 shape = RoundedCornerShape(16.dp)
             )
 
-            // Date & Time Selectors Row
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(
-                    onClick = { datePickerDialog.show() },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(selectedDateText, fontSize = 13.sp)
-                }
-
-                OutlinedButton(
-                    onClick = { timePickerDialog.show() },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(selectedTimeText, fontSize = 13.sp)
-                }
-            }
-
             // Repeat Options (Once, Daily, Weekly, Monthly)
             Text("Repeat Schedule:", fontWeight = FontWeight.Bold)
             val repeatDisplayMap = mapOf(
@@ -178,6 +157,54 @@ fun AddEditReminderScreen(
                 }
             }
 
+            // Date & Time Selectors Row:
+            // When Daily is selected, HIDE Date Picker completely and only show Time Picker
+            val isDaily = repeatType == RepeatType.DAILY.name
+
+            if (isDaily) {
+                // Daily: Only Time Picker
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Alarm Time (Repeats Every Day):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                    OutlinedButton(
+                        onClick = { timePickerDialog.show() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(20.dp), tint = OrangeAccent)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ring Daily at $selectedTimeText", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                // Once / Weekly / Monthly: Both Date & Time Pickers
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedButton(
+                        onClick = { datePickerDialog.show() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(selectedDateText, fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { timePickerDialog.show() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(selectedTimeText, fontSize = 13.sp)
+                    }
+                }
+            }
+
             // Notes / Description
             OutlinedTextField(
                 value = description,
@@ -196,11 +223,30 @@ fun AddEditReminderScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
+                        // Timing calculation with 0 seconds / 0 millis
+                        val targetCal = Calendar.getInstance().apply {
+                            if (isDaily) {
+                                // Set today's date with chosen hour and minute
+                                set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
+                                set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                                // If time already passed today, set for tomorrow
+                                if (timeInMillis <= System.currentTimeMillis()) {
+                                    add(Calendar.DAY_OF_YEAR, 1)
+                                }
+                            } else {
+                                timeInMillis = calendar.timeInMillis
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
+                        }
+
                         val reminderToSave = ReminderEntity(
                             id = existingReminder?.id ?: 0,
                             title = title.trim(),
                             description = description.trim(),
-                            timeMillis = calendar.timeInMillis,
+                            timeMillis = targetCal.timeInMillis,
                             repeatType = repeatType,
                             isVoiceEnabled = false,
                             voicePreset = "",

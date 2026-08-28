@@ -10,12 +10,14 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderStatus
+import com.example.data.model.RepeatType
 import com.example.service.AlarmScheduler
 import com.example.service.AlarmService
 import com.example.service.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -39,6 +41,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val script = intent.getStringExtra(EXTRA_REMINDER_SCRIPT) ?: ""
         val preset = intent.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
+        // Acquire WakeLock immediately so CPU wakes up with 0s delay
         var wakeLock: PowerManager.WakeLock? = null
         try {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -46,7 +49,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                 "MemoryPlus:AlarmReceiverWakeLock"
             )
-            wakeLock?.acquire(30 * 1000L) // 30s guarantee
+            wakeLock?.acquire(60 * 1000L) // 60s guarantee while service launches and rings
         } catch (e: Exception) {
             Log.e("AlarmReceiver", "Failed acquiring wake lock", e)
         }
@@ -67,7 +70,10 @@ class AlarmReceiver : BroadcastReceiver() {
                     try {
                         if (reminderId != -1L) {
                             val db = AppDatabase.getInstance(context)
-                            db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                            val reminder = db.reminderDao().getReminderById(reminderId)
+                            if (reminder != null && reminder.repeatType != RepeatType.DAILY.name) {
+                                db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e("AlarmReceiver", "Error marking reminder completed", e)
@@ -93,9 +99,13 @@ class AlarmReceiver : BroadcastReceiver() {
                             val db = AppDatabase.getInstance(context)
                             val reminder = db.reminderDao().getReminderById(reminderId)
                             if (reminder != null) {
-                                val snoozedTime = System.currentTimeMillis() + (10 * 60 * 1000L)
+                                val snoozedCal = Calendar.getInstance().apply {
+                                    timeInMillis = System.currentTimeMillis() + (10 * 60 * 1000L)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
                                 val updated = reminder.copy(
-                                    timeMillis = snoozedTime,
+                                    timeMillis = snoozedCal.timeInMillis,
                                     status = ReminderStatus.PENDING.name
                                 )
                                 db.reminderDao().updateReminder(updated)
@@ -130,6 +140,39 @@ class AlarmReceiver : BroadcastReceiver() {
                     }
                 } catch (e: Exception) {
                     Log.e("AlarmReceiver", "Error starting AlarmService", e)
+                }
+
+                // DAILY REPEATING LOGIC: If Daily, IMMEDIATELY reschedule for tomorrow (+24h) with 0 delay
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        if (reminderId != -1L) {
+                            val db = AppDatabase.getInstance(context)
+                            val reminder = db.reminderDao().getReminderById(reminderId)
+                            if (reminder != null) {
+                                if (reminder.repeatType == RepeatType.DAILY.name || reminder.repeatType.equals("DAILY", ignoreCase = true)) {
+                                    // Calculate tomorrow at exact same hour/min with 0 seconds/0 millis
+                                    val nextDayCal = Calendar.getInstance().apply {
+                                        timeInMillis = reminder.timeMillis
+                                        add(Calendar.DAY_OF_YEAR, 1)
+                                        set(Calendar.SECOND, 0)
+                                        set(Calendar.MILLISECOND, 0)
+                                        while (timeInMillis <= System.currentTimeMillis()) {
+                                            add(Calendar.DAY_OF_YEAR, 1)
+                                        }
+                                    }
+                                    val nextDailyReminder = reminder.copy(
+                                        timeMillis = nextDayCal.timeInMillis,
+                                        status = ReminderStatus.PENDING.name
+                                    )
+                                    db.reminderDao().updateReminder(nextDailyReminder)
+                                    AlarmScheduler(context).schedule(nextDailyReminder)
+                                    Log.d("AlarmReceiver", "Daily reminder $reminderId auto-rescheduled for tomorrow at ${nextDayCal.time}")
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AlarmReceiver", "Error auto-rescheduling daily reminder", e)
+                    }
                 }
             }
         }

@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
@@ -26,6 +27,7 @@ object NotificationHelper {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
             val alarmSound: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
             val audioAttributes = AudioAttributes.Builder()
@@ -41,7 +43,7 @@ object NotificationHelper {
                 description = "Urgent reminder alarms and scheduled alerts"
                 enableLights(true)
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 800, 400, 800, 400, 800)
+                vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
                 setSound(alarmSound, audioAttributes)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setBypassDnd(true)
@@ -115,6 +117,7 @@ object NotificationHelper {
         )
 
         val alarmSound: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -127,8 +130,8 @@ object NotificationHelper {
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setAutoCancel(true)
             .setOngoing(true)
-            .setSound(alarmSound)
-            .setVibrate(longArrayOf(0, 800, 400, 800, 400, 800))
+            .setSound(alarmSound, AudioManager.STREAM_ALARM)
+            .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Mark as Done", donePendingIntent)
             .addAction(android.R.drawable.ic_popup_sync, "Snooze 10 Mins", snoozePendingIntent)

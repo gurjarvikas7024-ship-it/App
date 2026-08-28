@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
                             title = parsed.title,
                             description = spokenText,
                             timeMillis = parsed.timeMillis,
-                            repeatType = "ONCE",
+                            repeatType = parsed.repeatType,
                             customVoiceScript = parsed.voiceScript,
                             voicePreset = uiState.voicePreset
                         )

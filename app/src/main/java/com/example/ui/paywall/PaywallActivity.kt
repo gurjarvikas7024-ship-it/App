@@ -103,18 +103,19 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * MODULE 2: Key Verification ("MP2026PRO")
+     * MODULE 2: Secret Activation Key Verification
      */
     private fun showSecretKeyDialog() {
         val input = EditText(this).apply {
-            hint = "Enter Secret Key (e.g. MP2026PRO)"
+            hint = "Enter Secret Activation Key"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             setSingleLine(true)
             setPadding(48, 36, 48, 36)
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Enter Pro Secret Key")
-            .setMessage("If you have completed payment or received an activation key, enter it below:")
+            .setTitle("Enter Pro Activation Key")
+            .setMessage("Please enter the activation key you received after successful payment:")
             .setView(input)
             .setPositiveButton("Activate") { dialog, _ ->
                 val key = input.text.toString().trim()
@@ -129,7 +130,7 @@ class PaywallActivity : ComponentActivity() {
                 } else {
                     Toast.makeText(
                         this,
-                        "❌ Invalid Secret Key. Please try again.",
+                        "❌ Invalid Activation Key. Please try again.",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
