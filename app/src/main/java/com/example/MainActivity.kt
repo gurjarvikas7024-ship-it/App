@@ -2,7 +2,6 @@ package com.example
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,7 +11,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.speech.RecognizerIntent
-import android.widget.EditText
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,7 +38,7 @@ import com.example.data.model.ReminderEntity
 import com.example.data.preferences.PreferenceManager
 import com.example.service.SmartVoiceParser
 import com.example.ui.components.VoiceInputBottomSheet
-import com.example.ui.paywall.PaywallScreenContent
+import com.example.ui.paywall.PaywallActivity
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ReminderViewModel
@@ -50,14 +49,12 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: ReminderViewModel by viewModels()
 
-    companion object {
-        const val STRIPE_PAYMENT_URL = "https://buy.stripe.com/YOUR_STRIPE_LINK"
-        const val RAZORPAY_UPI_URL = "https://rzp.io/l/YOUR_RAZORPAY_LINK"
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // MODULE 4: Battery Optimization check for Xiaomi, Samsung, Vivo
+        checkAndRequestBatteryOptimization()
 
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -72,12 +69,12 @@ class MainActivity : ComponentActivity() {
             var showVoiceModal by remember { mutableStateOf(false) }
             var editingReminder by remember { mutableStateOf<ReminderEntity?>(null) }
 
-            // Silently request notification permission on Android 13+
+            // Notification permission request for Android 13+
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
             ) { /* Handled */ }
 
-            // Speech-to-Text Voice Recognizer Launcher
+            // MODULE 3: Speech-to-Text Voice Recognizer Launcher
             val speechRecognizerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
             ) { result ->
@@ -86,6 +83,12 @@ class MainActivity : ComponentActivity() {
                     val spokenText = spokenTextList?.firstOrNull()?.trim()
 
                     if (!spokenText.isNullOrBlank()) {
+                        // Check limit before saving parsed reminder
+                        if (!PreferenceManager.canCreateReminder(context)) {
+                            PaywallActivity.start(context)
+                            return@rememberLauncherForActivityResult
+                        }
+
                         val parsed = SmartVoiceParser.parse(spokenText, uiState.userName)
                         val reminder = ReminderEntity(
                             title = parsed.title,
@@ -108,14 +111,12 @@ class MainActivity : ComponentActivity() {
                                 ).show()
                             },
                             onError = {
-                                viewModel.refreshPreferences()
+                                PaywallActivity.start(context)
                             }
                         )
                     } else {
                         showVoiceModal = true
                     }
-                } else {
-                    showVoiceModal = true
                 }
             }
 
@@ -125,7 +126,7 @@ class MainActivity : ComponentActivity() {
                         try {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            Log.e("MainActivity", "Failed to launch notification permission request", e)
                         }
                     }
                 }
@@ -142,127 +143,111 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val startDestination = if (uiState.isOnboardingDone) "home" else "onboarding"
 
-                    // If locked, render the Paywall hard screen directly
-                    if (uiState.isLocked) {
-                        PaywallScreenContent(
-                            onPayStripe = { openUrl(STRIPE_PAYMENT_URL) },
-                            onPayRazorpay = { openUrl(RAZORPAY_UPI_URL) },
-                            onSecretKeyClick = { showSecretKeyDialog() }
-                        )
-                    } else {
-                        NavHost(navController = navController, startDestination = startDestination) {
-                            composable("onboarding") {
-                                OnboardingScreen(
-                                    onSaveUser = { name, lang, voice, loggedIn, email, provider ->
-                                        viewModel.saveUserName(name)
-                                        viewModel.setVoiceSettings(lang, voice)
-                                        viewModel.setAuth(loggedIn, email, provider)
-                                        navController.navigate("home") {
-                                            popUpTo("onboarding") { inclusive = true }
-                                        }
+                    NavHost(navController = navController, startDestination = startDestination) {
+                        composable("onboarding") {
+                            OnboardingScreen(
+                                onSaveUser = { name, lang, voice, loggedIn, email, provider ->
+                                    viewModel.saveUserName(name)
+                                    viewModel.setVoiceSettings(lang, voice)
+                                    viewModel.setAuth(loggedIn, email, provider)
+                                    navController.navigate("home") {
+                                        popUpTo("onboarding") { inclusive = true }
                                     }
-                                )
-                            }
+                                }
+                            )
+                        }
 
-                            composable("home") {
-                                HomeScreen(
-                                    uiState = uiState,
-                                    reminders = allReminders,
-                                    selectedTab = selectedTab,
-                                    searchQuery = searchQuery,
-                                    onSelectTab = { viewModel.selectTab(it) },
-                                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                                    on1TapMic = {
-                                        if (PreferenceManager.isLocked(context)) {
-                                            viewModel.refreshPreferences()
-                                        } else {
-                                            startNativeSpeechRecognizer(speechRecognizerLauncher)
-                                        }
-                                    },
-                                    onOpenVoiceDialog = {
-                                        if (PreferenceManager.isLocked(context)) {
-                                            viewModel.refreshPreferences()
-                                        } else {
-                                            showVoiceModal = true
-                                        }
-                                    },
-                                    onOpenAddReminder = {
-                                        if (PreferenceManager.isLocked(context)) {
-                                            viewModel.refreshPreferences()
-                                        } else {
-                                            editingReminder = null
-                                            navController.navigate("add_edit")
-                                        }
-                                    },
-                                    onOpenCalendar = { navController.navigate("calendar") },
-                                    onOpenSettings = { navController.navigate("settings") },
-                                    onOpenPaywall = { navController.navigate("paywall") },
-                                    onToggleCompleted = { viewModel.markCompleted(it) },
-                                    onDeleteReminder = { viewModel.deleteReminder(it) },
-                                    onEditReminder = { reminder ->
-                                        editingReminder = reminder
-                                        navController.navigate("add_edit")
-                                    },
-                                    onSnoozeReminder = { viewModel.snoozeReminder(it) }
-                                )
-                            }
-
-                            composable("add_edit") {
-                                AddEditReminderScreen(
-                                    userName = uiState.userName,
-                                    existingReminder = editingReminder,
-                                    onBack = { navController.popBackStack() },
-                                    onSave = { reminder ->
-                                        if (editingReminder == null) {
-                                            viewModel.addReminder(
-                                                reminder = reminder,
-                                                onSuccess = { navController.popBackStack() },
-                                                onError = {
-                                                    viewModel.refreshPreferences()
-                                                }
-                                            )
-                                        } else {
-                                            viewModel.updateReminder(reminder)
-                                            navController.popBackStack()
-                                        }
+                        composable("home") {
+                            HomeScreen(
+                                uiState = uiState,
+                                reminders = allReminders,
+                                selectedTab = selectedTab,
+                                searchQuery = searchQuery,
+                                onSelectTab = { viewModel.selectTab(it) },
+                                onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                                on1TapMic = {
+                                    // MODULE 3: 1-Tap Mic action with guard
+                                    if (!PreferenceManager.canCreateReminder(context)) {
+                                        PaywallActivity.start(context)
+                                    } else {
+                                        startNativeSpeechRecognizer(speechRecognizerLauncher)
                                     }
-                                )
-                            }
-
-                            composable("calendar") {
-                                CalendarScreen(
-                                    selectedDateMillis = selectedDateMillis,
-                                    remindersForDate = remindersForSelectedDate,
-                                    onSelectDate = { viewModel.setSelectedDate(it) },
-                                    onBack = { navController.popBackStack() },
-                                    onToggleCompleted = { viewModel.markCompleted(it) },
-                                    onDeleteReminder = { viewModel.deleteReminder(it) },
-                                    onEditReminder = { reminder ->
-                                        editingReminder = reminder
+                                },
+                                onOpenVoiceDialog = {
+                                    if (!PreferenceManager.canCreateReminder(context)) {
+                                        PaywallActivity.start(context)
+                                    } else {
+                                        showVoiceModal = true
+                                    }
+                                },
+                                onOpenAddReminder = {
+                                    if (!PreferenceManager.canCreateReminder(context)) {
+                                        PaywallActivity.start(context)
+                                    } else {
+                                        editingReminder = null
                                         navController.navigate("add_edit")
-                                    },
-                                    onSnoozeReminder = { viewModel.snoozeReminder(it) }
-                                )
-                            }
+                                    }
+                                },
+                                onOpenCalendar = { navController.navigate("calendar") },
+                                onOpenSettings = { navController.navigate("settings") },
+                                onOpenPaywall = { PaywallActivity.start(context) },
+                                onToggleCompleted = { viewModel.markCompleted(it) },
+                                onDeleteReminder = { viewModel.deleteReminder(it) },
+                                onEditReminder = { reminder ->
+                                    editingReminder = reminder
+                                    navController.navigate("add_edit")
+                                },
+                                onSnoozeReminder = { viewModel.snoozeReminder(it) }
+                            )
+                        }
 
-                            composable("settings") {
-                                SettingsProfileScreen(
-                                    uiState = uiState,
-                                    onBack = { navController.popBackStack() },
-                                    onSaveName = { viewModel.saveUserName(it) },
-                                    onSaveVoiceSettings = { lang, voice, preset -> viewModel.setVoiceSettings(lang, voice, preset) },
-                                    onToggleDarkMode = { viewModel.setDarkMode(it) },
-                                    onOpenPaywall = { navController.navigate("paywall") }
-                                )
-                            }
+                        composable("add_edit") {
+                            AddEditReminderScreen(
+                                userName = uiState.userName,
+                                existingReminder = editingReminder,
+                                onBack = { navController.popBackStack() },
+                                onSave = { reminder ->
+                                    if (editingReminder == null) {
+                                        viewModel.addReminder(
+                                            reminder = reminder,
+                                            onSuccess = { navController.popBackStack() },
+                                            onError = {
+                                                PaywallActivity.start(context)
+                                            }
+                                        )
+                                    } else {
+                                        viewModel.updateReminder(reminder)
+                                        navController.popBackStack()
+                                    }
+                                }
+                            )
+                        }
 
-                            composable("paywall") {
-                                PaywallScreenContent(
-                                    onPayStripe = { openUrl(STRIPE_PAYMENT_URL) },
-                                    onPayRazorpay = { openUrl(RAZORPAY_UPI_URL) },
-                                    onSecretKeyClick = { showSecretKeyDialog() }
-                                )
-                            }
+                        composable("calendar") {
+                            CalendarScreen(
+                                selectedDateMillis = selectedDateMillis,
+                                remindersForDate = remindersForSelectedDate,
+                                onSelectDate = { viewModel.setSelectedDate(it) },
+                                onBack = { navController.popBackStack() },
+                                onToggleCompleted = { viewModel.markCompleted(it) },
+                                onDeleteReminder = { viewModel.deleteReminder(it) },
+                                onEditReminder = { reminder ->
+                                    editingReminder = reminder
+                                    navController.navigate("add_edit")
+                                },
+                                onSnoozeReminder = { viewModel.snoozeReminder(it) }
+                            )
+                        }
+
+                        composable("settings") {
+                            SettingsProfileScreen(
+                                uiState = uiState,
+                                onBack = { navController.popBackStack() },
+                                onSaveName = { viewModel.saveUserName(it) },
+                                onSaveVoiceSettings = { lang, voice, preset -> viewModel.setVoiceSettings(lang, voice, preset) },
+                                onToggleDarkMode = { viewModel.setDarkMode(it) },
+                                onOpenPaywall = { PaywallActivity.start(context) }
+                            )
                         }
                     }
 
@@ -282,7 +267,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onError = {
                                         showVoiceModal = false
-                                        viewModel.refreshPreferences()
+                                        PaywallActivity.start(context)
                                     }
                                 )
                             }
@@ -311,7 +296,7 @@ class MainActivity : ComponentActivity() {
                                 Button(
                                     onClick = {
                                         viewModel.dismissPaywallDialog()
-                                        navController.navigate("paywall")
+                                        PaywallActivity.start(context)
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
                                     shape = RoundedCornerShape(12.dp)
@@ -340,51 +325,6 @@ class MainActivity : ComponentActivity() {
         viewModel.refreshPreferences()
     }
 
-    private fun openUrl(url: String) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Unable to open link in browser", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showSecretKeyDialog() {
-        val input = EditText(this).apply {
-            hint = "Enter Secret Key (e.g. MP2026PRO)"
-            setSingleLine(true)
-            setPadding(48, 36, 48, 36)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Enter Pro Secret Key")
-            .setMessage("If you have completed payment or received a VIP activation key, enter it below:")
-            .setView(input)
-            .setPositiveButton("Activate") { dialog, _ ->
-                val key = input.text.toString().trim()
-                if (viewModel.unlockWithSecretKey(key)) {
-                    Toast.makeText(
-                        this,
-                        "🎉 Memory Plus Pro Unlocked Successfully!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    dialog.dismiss()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "❌ Invalid Secret Key. Please try again.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
-    }
-
     private fun startNativeSpeechRecognizer(launcher: androidx.activity.result.ActivityResultLauncher<Intent>) {
         try {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -395,7 +335,26 @@ class MainActivity : ComponentActivity() {
             }
             launcher.launch(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "Opening voice helper", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Voice recognition unavailable. Opening manual input.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * MODULE 4: Check & Request Battery Optimization Whitelist for reliable alarms
+     */
+    private fun checkAndRequestBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+                if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                Log.d("MainActivity", "Direct battery whitelist intent ignored by OS", e)
+            }
         }
     }
 }

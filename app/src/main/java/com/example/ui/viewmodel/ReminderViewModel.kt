@@ -102,8 +102,8 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     ) { basic, extra, _ ->
         val app = getApplication<Application>()
         val proUnlocked = PreferenceManager.isProUnlocked(app) || basic.isPremium
-        val createdCount = PreferenceManager.getRemindersCreatedCount(app)
-        val locked = PreferenceManager.isLocked(app) && !basic.isPremium
+        val createdCount = PreferenceManager.getRemindersCount(app)
+        val locked = !PreferenceManager.canCreateReminder(app) && !basic.isPremium
         val remaining = if (proUnlocked) Int.MAX_VALUE else (PreferenceManager.MAX_FREE_REMINDERS - createdCount).coerceAtLeast(0)
 
         UiState(
@@ -306,9 +306,9 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     fun addReminder(reminder: ReminderEntity, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             val app = getApplication<Application>()
-            val isLocked = PreferenceManager.isLocked(app)
+            val canCreate = PreferenceManager.canCreateReminder(app)
 
-            if (isLocked) {
+            if (!canCreate) {
                 _showPaywallLimitDialog.value = true
                 onError("You have used your 2 free reminders. Please upgrade to Pro to create unlimited reminders.")
                 return@launch
@@ -317,7 +317,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             val id = repository.insertReminder(reminder)
             val newReminder = reminder.copy(id = id)
             alarmScheduler.schedule(newReminder)
-            PreferenceManager.incrementRemindersCreatedCount(app)
+            PreferenceManager.incrementRemindersCount(app)
             refreshPreferences()
             onSuccess()
         }

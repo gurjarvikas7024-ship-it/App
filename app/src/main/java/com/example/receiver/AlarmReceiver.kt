@@ -1,6 +1,5 @@
 package com.example.receiver
 
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,10 +9,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.example.data.db.AppDatabase
-import com.example.data.model.ReminderEntity
 import com.example.data.model.ReminderStatus
 import com.example.service.AlarmScheduler
 import com.example.service.AlarmService
+import com.example.service.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,24 +46,22 @@ class AlarmReceiver : BroadcastReceiver() {
                 PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                 "MemoryPlus:AlarmReceiverWakeLock"
             )
-            wakeLock?.acquire(30 * 1000L) // 30 seconds guarantee for alarm execution
+            wakeLock?.acquire(30 * 1000L) // 30s guarantee
         } catch (e: Exception) {
             Log.e("AlarmReceiver", "Failed acquiring wake lock", e)
         }
 
         when (action) {
             ACTION_MARK_DONE -> {
-                Log.d("AlarmReceiver", "Action Mark as Done for ID: $reminderId")
-                // Stop alarm service and cancel notification
+                Log.d("AlarmReceiver", "Mark as Done for ID: $reminderId")
+                NotificationHelper.cancelNotification(context, reminderId)
+
+                // Stop AlarmService if running
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
                     this.action = AlarmService.ACTION_DISMISS_ALARM
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
                 }
                 context.startService(serviceIntent)
-
-                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                notificationManager?.cancel(AlarmService.NOTIFICATION_ID)
-                if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
@@ -80,17 +77,15 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             ACTION_SNOOZE_10 -> {
-                Log.d("AlarmReceiver", "Action Snooze 10 Mins for ID: $reminderId")
+                Log.d("AlarmReceiver", "Snooze 10 Mins for ID: $reminderId")
+                NotificationHelper.cancelNotification(context, reminderId)
+
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
                     this.action = AlarmService.ACTION_SNOOZE_ALARM
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
                     putExtra(AlarmService.EXTRA_SNOOZE_MINUTES, 10)
                 }
                 context.startService(serviceIntent)
-
-                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                notificationManager?.cancel(AlarmService.NOTIFICATION_ID)
-                if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
@@ -116,7 +111,9 @@ class AlarmReceiver : BroadcastReceiver() {
 
             else -> {
                 // ACTION_TRIGGER_REMINDER
-                Log.d("AlarmReceiver", "Triggering alarm service for reminder: $reminderId - $title")
+                Log.d("AlarmReceiver", "Triggering alarm: $reminderId - $title")
+                NotificationHelper.showAlarmNotification(context, reminderId, title, script)
+
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
                     this.action = AlarmService.ACTION_START_ALARM
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
@@ -142,7 +139,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 wakeLock.release()
             }
         } catch (e: Exception) {
-            // Ignore
+            // Ignored
         }
     }
 }

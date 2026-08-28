@@ -1,98 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Essential Hardware & Alarm Permissions -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Audio & Network Permissions -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
-        <property
-            android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-            android:value="Full screen priority reminder alarms" />
-
-        <!-- Main Launcher Activity -->
+        <!-- Main Dashboard & Launcher Activity -->
         <activity
-            android:name="com.example.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.MyApplication"
-            android:windowSoftInputMode="adjustResize">
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.MyApplication">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Dedicated Paywall Lock Activity -->
+        <!-- Pro Upgrade & Paywall Activity -->
         <activity
-            android:name="com.example.ui.paywall.PaywallActivity"
+            android:name=".ui.paywall.PaywallActivity"
             android:exported="false"
-            android:label="Memory Plus Pro"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.MyApplication" />
+
+        <!-- Full-Screen Alarm & Wakeup Activity -->
+        <activity
+            android:name=".ui.alarm.FullScreenAlarmActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:theme="@style/Theme.MyApplication"
-            android:windowSoftInputMode="adjustResize" />
+            android:launchMode="singleTask" />
 
-        <!-- Full Screen Alarm Activities -->
-        <activity
-            android:name="com.example.ui.alarm.AlarmActivity"
-            android:exported="false"
-            android:showWhenLocked="true"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-            android:launchMode="singleInstance"
-            android:taskAffinity=""
-            android:theme="@style/Theme.MyApplication" />
-
-        <activity
-            android:name="com.example.ui.alarm.FullScreenAlarmActivity"
-            android:exported="false"
-            android:showWhenLocked="true"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-            android:launchMode="singleInstance"
-            android:taskAffinity=""
-            android:theme="@style/Theme.MyApplication" />
-
-        <!-- Alarm Foreground Service -->
-        <service
-            android:name="com.example.service.AlarmService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse|mediaPlayback" />
-
-        <!-- Receivers -->
+        <!-- High-Priority Alarm Broadcast Receiver -->
         <receiver
-            android:name="com.example.receiver.ReminderReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.example.ACTION_TRIGGER_REMINDER" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name="com.example.receiver.AlarmReceiver"
+            android:name=".receiver.AlarmReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.example.ACTION_TRIGGER_REMINDER" />
@@ -101,9 +67,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Boot & Device Reboot Receiver -->
         <receiver
-            android:name="com.example.receiver.BootReceiver"
-            android:exported="true">
+            android:name=".receiver.BootReceiver"
+            android:exported="true"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
@@ -111,6 +79,13 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
-    </application>
 
+        <!-- Background Voice Audio / Alarm Ringer Service -->
+        <service
+            android:name=".service.AlarmService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+    </application>
 </manifest>

@@ -5,8 +5,8 @@ import android.content.SharedPreferences
 
 object PreferenceManager {
 
-    private const val PREFS_NAME = "memory_plus_prefs"
-    const val KEY_REMINDERS_CREATED_COUNT = "reminders_created_count"
+    private const val PREFS_NAME = "MemoryPlusPrefs"
+    const val KEY_REMINDERS_COUNT = "reminders_count"
     const val KEY_IS_PRO_UNLOCKED = "is_pro_unlocked"
     const val SECRET_PRO_KEY = "MP2026PRO"
     const val MAX_FREE_REMINDERS = 2
@@ -16,15 +16,15 @@ object PreferenceManager {
     }
 
     @JvmStatic
-    fun getRemindersCreatedCount(context: Context): Int {
-        return getPrefs(context).getInt(KEY_REMINDERS_CREATED_COUNT, 0)
+    fun getRemindersCount(context: Context): Int {
+        return getPrefs(context).getInt(KEY_REMINDERS_COUNT, 0)
     }
 
     @JvmStatic
-    fun incrementRemindersCreatedCount(context: Context): Int {
+    fun incrementRemindersCount(context: Context): Int {
         val prefs = getPrefs(context)
-        val newCount = prefs.getInt(KEY_REMINDERS_CREATED_COUNT, 0) + 1
-        prefs.edit().putInt(KEY_REMINDERS_CREATED_COUNT, newCount).apply()
+        val newCount = prefs.getInt(KEY_REMINDERS_COUNT, 0) + 1
+        prefs.edit().putInt(KEY_REMINDERS_COUNT, newCount).apply()
         return newCount
     }
 
@@ -39,17 +39,17 @@ object PreferenceManager {
     }
 
     @JvmStatic
-    fun isLocked(context: Context): Boolean {
+    fun canCreateReminder(context: Context): Boolean {
         if (isProUnlocked(context)) {
-            return false
+            return true
         }
-        return getRemindersCreatedCount(context) >= MAX_FREE_REMINDERS
+        return getRemindersCount(context) < MAX_FREE_REMINDERS
     }
 
     @JvmStatic
     fun getRemainingFreeReminders(context: Context): Int {
         if (isProUnlocked(context)) return Int.MAX_VALUE
-        val count = getRemindersCreatedCount(context)
+        val count = getRemindersCount(context)
         return (MAX_FREE_REMINDERS - count).coerceAtLeast(0)
     }
 

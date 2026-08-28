@@ -13,50 +13,53 @@
         android:gravity="center_horizontal">
 
         <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:layout_marginTop="24dp"
+            android:id="@+id/iv_lock_icon"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginTop="28dp"
             android:src="@android:drawable/ic_lock_idle_alarm"
             android:tint="#F59E0B"
-            android:contentDescription="Lock Icon" />
+            android:contentDescription="Upgrade Required" />
 
         <TextView
             android:id="@+id/tv_paywall_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Memory Plus Pro - Free Trial Ended"
+            android:text="Memory Plus Pro - Upgrade Required"
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textAlignment="center" />
 
         <TextView
-            android:id="@+id/tv_paywall_message"
+            android:id="@+id/tv_paywall_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="You have used your 2 free reminders. Upgrade to Pro to continue using Memory Plus."
+            android:text="You have reached the limit of 2 free reminders. Upgrade to unlock unlimited voice reminders."
             android:textColor="#94A3B8"
             android:textSize="14sp"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            android:lineSpacingExtra="4dp" />
 
         <!-- Feature List Card -->
         <LinearLayout
+            android:id="@+id/ll_features_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:background="#1E293B"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Unlimited Reminders"
+                android:text="✓ Unlimited Alarms"
                 android:textColor="#E2E8F0"
                 android:textSize="15sp"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -64,51 +67,51 @@
                 android:text="✓ 1-Tap AI Voice Input"
                 android:textColor="#E2E8F0"
                 android:textSize="15sp"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Battery-Optimized Exact Alarms"
+                android:text="✓ Battery-Optimized Alarms"
                 android:textColor="#E2E8F0"
                 android:textSize="15sp"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Lifetime Pro Access"
+                android:text="✓ Lifetime Access"
                 android:textColor="#E2E8F0"
                 android:textSize="15sp" />
         </LinearLayout>
 
-        <!-- Button 1: Stripe Card / Apple Pay -->
+        <!-- Button 1: PhonePe / GPay / UPI (India) -->
         <Button
-            android:id="@+id/btn_pay_stripe"
+            android:id="@+id/btn_pay_upi"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginTop="24dp"
-            android:backgroundTint="#0284C7"
-            android:text="Pay with Card / Apple Pay ($4.99 / Year - US/UK)"
+            android:layout_marginTop="26dp"
+            android:backgroundTint="#059669"
+            android:text="Pay via PhonePe / Google Pay / UPI (₹399 - India)"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
 
-        <!-- Button 2: Razorpay / UPI / PhonePe / GPay -->
+        <!-- Button 2: Stripe / Card / Apple Pay (US/UK) -->
         <Button
-            android:id="@+id/btn_pay_razorpay"
+            android:id="@+id/btn_pay_stripe"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="12dp"
-            android:backgroundTint="#059669"
-            android:text="Pay with PhonePe / Google Pay / UPI (₹399 / Year - India)"
+            android:backgroundTint="#0284C7"
+            android:text="Pay with Card / Apple Pay ($4.99 - US/UK)"
             android:textColor="#FFFFFF"
             android:textSize="13sp"
             android:textStyle="bold" />
 
         <!-- Button 3: Secret Key -->
         <Button
-            android:id="@+id/btn_secret_key"
+            android:id="@+id/btn_enter_secret_key"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="12dp"

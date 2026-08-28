@@ -16,7 +16,7 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        Log.d("BootReceiver", "Device restarted / package replaced with action: $action. Rescheduling all pending alarms.")
+        Log.d("BootReceiver", "Device rebooted or package replaced: $action. Restoring pending alarms.")
 
         if (action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
@@ -31,18 +31,18 @@ class BootReceiver : BroadcastReceiver() {
                     val pendingReminders = db.reminderDao().getRemindersByStatus(ReminderStatus.PENDING.name).first()
                     val now = System.currentTimeMillis()
 
-                    var rescheduledCount = 0
+                    var restoredCount = 0
                     for (reminder in pendingReminders) {
                         if (reminder.timeMillis > now) {
                             scheduler.schedule(reminder)
-                            rescheduledCount++
+                            restoredCount++
                         } else {
                             db.reminderDao().updateStatus(reminder.id, ReminderStatus.MISSED.name)
                         }
                     }
-                    Log.d("BootReceiver", "Successfully restored $rescheduledCount pending alarms after boot.")
+                    Log.d("BootReceiver", "Successfully rescheduled $restoredCount pending alarms.")
                 } catch (e: Exception) {
-                    Log.e("BootReceiver", "Error during boot alarm rescheduling", e)
+                    Log.e("BootReceiver", "Error rescheduling alarms after boot", e)
                 } finally {
                     pendingResult.finish()
                 }
