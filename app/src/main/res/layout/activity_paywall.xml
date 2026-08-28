@@ -165,14 +165,14 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <!-- Button 2: Failsafe Confirmation Button -->
+        <!-- Button 2: Manual Key Fallback Button -->
         <Button
-            android:id="@+id/btn_check_status"
+            android:id="@+id/btn_enter_secret_key"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="match_parent"
             android:layout_height="44dp"
             android:layout_marginTop="8dp"
-            android:text="Already paid via UPI? Check Status"
+            android:text="Already Paid? Enter Secret Key"
             android:textColor="#38BDF8"
             android:textSize="13sp"
             android:textStyle="bold" />

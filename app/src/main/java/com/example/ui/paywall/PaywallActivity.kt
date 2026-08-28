@@ -75,9 +75,6 @@ class PaywallActivity : ComponentActivity() {
                     onPayClicked = {
                         launchUpiPaymentIntent()
                     },
-                    onCheckStatusClicked = {
-                        showFailsafeStatusDialog()
-                    },
                     onEnterKeyClicked = {
                         showSecretKeyDialog()
                     }
@@ -87,7 +84,7 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * Secret Key Fallback Dialog
+     * Manual Secret Key Fallback: Unlocks ONLY when exact key "MP2026PRO" is entered
      */
     private fun showSecretKeyDialog() {
         val input = android.widget.EditText(this).apply {
@@ -96,6 +93,7 @@ class PaywallActivity : ComponentActivity() {
         }
         AlertDialog.Builder(this)
             .setTitle("Enter Pro Key")
+            .setMessage("If you paid manually via QR or need offline access, enter your activation key:")
             .setView(input)
             .setPositiveButton("Activate") { dialog, _ ->
                 val key = input.text.toString().trim()
@@ -124,7 +122,6 @@ class PaywallActivity : ComponentActivity() {
             if (upiIntent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
                 upiPaymentLauncher.launch(chooser)
             } else {
-                // Fallback attempt without chooser if chooser resolution is strict
                 try {
                     upiPaymentLauncher.launch(upiIntent)
                 } catch (e: Exception) {
@@ -142,104 +139,62 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * 2. Automatic Unlock on UPI Success Response
+     * Strict UPI Response Handler:
+     * - Disallows empty/null response
+     * - Disallows RESULT_CANCELED
+     * - ONLY unlocks if status is "SUCCESS" or "SUBMITTED"
      */
     private fun handleUpiPaymentResult(resultCode: Int, data: Intent?) {
         val response = data?.getStringExtra("response") ?: ""
         Log.d("PaywallActivity", "UPI Response: $response | resultCode: $resultCode")
 
-        if (isUpiSuccess(response, resultCode)) {
-            // 1. Update SharedPreferences ("MemoryPlusPrefs"): is_pro_unlocked = true
+        if (resultCode == Activity.RESULT_OK && response.isNotBlank() && isUpiSuccess(response)) {
+            // Update SharedPreferences: is_pro_unlocked = true
             PreferenceManager.setProUnlocked(this, true)
 
-            // 2. Show Toast
             Toast.makeText(
                 this,
                 "Payment Successful! Pro Features Unlocked 🎉",
                 Toast.LENGTH_LONG
             ).show()
 
-            // 3. Close PaywallActivity immediately and return to MainActivity
             setResult(Activity.RESULT_OK)
             finish()
         } else {
             Toast.makeText(
                 this,
-                "Payment failed or cancelled. Please try again.",
+                "Payment failed or cancelled. Pro is locked.",
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
 
     /**
-     * Helper to parse UPI key-values and statuses
+     * Helper to parse UPI key-values and status strictly
      */
-    private fun isUpiSuccess(response: String, resultCode: Int): Boolean {
+    private fun isUpiSuccess(response: String): Boolean {
         if (response.isBlank()) {
             return false
         }
 
-        val cleanResponse = response.lowercase(Locale.ROOT)
-
-        // Parse key=value pairs standard in NPCI UPI responses
+        // Parse key=value pairs standard in NPCI UPI responses (e.g. txnId=...&responseCode=...&Status=SUCCESS&...)
         val params = response.split("&").associate { entry ->
             val parts = entry.split("=")
-            if (parts.size == 2) parts[0].trim().lowercase(Locale.ROOT) to parts[1].trim().lowercase(Locale.ROOT)
-            else parts[0].trim().lowercase(Locale.ROOT) to ""
-        }
-
-        val status = params["status"] ?: ""
-        val responseCode = params["responsecode"] ?: ""
-        val txnStatus = params["txnstatus"] ?: ""
-
-        if (status.contains("success") || status.contains("submitted") ||
-            txnStatus.contains("success") || txnStatus.contains("submitted") ||
-            responseCode == "00" || responseCode == "0"
-        ) {
-            return true
-        }
-
-        // Direct containment fallback check
-        if (cleanResponse.contains("status=success") ||
-            cleanResponse.contains("status=submitted") ||
-            cleanResponse.contains("responsecode=00") ||
-            cleanResponse.contains("txnstatus=success")
-        ) {
-            return true
-        }
-
-        return false
-    }
-
-    /**
-     * 3. Failsafe Confirmation Dialog
-     */
-    private fun showFailsafeStatusDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Check UPI Payment Status")
-            .setMessage("Did you complete the ₹399 payment via PhonePe / GPay / Paytm / UPI?")
-            .setPositiveButton("Yes, I Paid (Unlock Pro)") { dialog, _ ->
-                PreferenceManager.setProUnlocked(this, true)
-                Toast.makeText(
-                    this,
-                    "Payment Confirmed! Pro Features Unlocked 🎉",
-                    Toast.LENGTH_LONG
-                ).show()
-                dialog.dismiss()
-                setResult(Activity.RESULT_OK)
-                finish()
+            if (parts.size == 2) {
+                parts[0].trim().lowercase(Locale.ROOT) to parts[1].trim()
+            } else {
+                parts[0].trim().lowercase(Locale.ROOT) to ""
             }
-            .setNegativeButton("Not Yet") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
+        }
+
+        val status = params["status"] ?: params["txnstatus"] ?: ""
+        return status.equals("SUCCESS", ignoreCase = true) || status.equals("SUBMITTED", ignoreCase = true)
     }
 }
 
 @Composable
 fun PaywallScreenContent(
     onPayClicked: () -> Unit,
-    onCheckStatusClicked: () -> Unit,
     onEnterKeyClicked: () -> Unit
 ) {
     Surface(
@@ -384,7 +339,7 @@ fun PaywallScreenContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. Action Button Update
+            // Action Button: Primary UPI Intent
             Button(
                 onClick = onPayClicked,
                 modifier = Modifier
@@ -403,14 +358,14 @@ fun PaywallScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Button 2: Failsafe Confirmation Button
+            // Manual Key Fallback Button: Unlocks ONLY with MP2026PRO
             TextButton(
-                onClick = onCheckStatusClicked,
+                onClick = onEnterKeyClicked,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(44.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.VerifiedUser,
@@ -420,29 +375,14 @@ fun PaywallScreenContent(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Already paid via UPI? Check Status",
+                    text = "Already Paid? Enter Secret Key",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF38BDF8)
                 )
             }
 
-            // Button 3: Secret Activation Key Button
-            TextButton(
-                onClick = onEnterKeyClicked,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-            ) {
-                Text(
-                    text = "Have an Activation Key?",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF94A3B8)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Secure Payment Badge
             Row(
