@@ -32,6 +32,7 @@
             android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
             android:value="Full screen priority reminder alarms" />
 
+        <!-- Main Launcher Activity -->
         <activity
             android:name="com.example.MainActivity"
             android:exported="true"
@@ -44,6 +45,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Dedicated Paywall Lock Activity -->
+        <activity
+            android:name="com.example.ui.paywall.PaywallActivity"
+            android:exported="false"
+            android:label="Memory Plus Pro"
+            android:theme="@style/Theme.MyApplication"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Full Screen Alarm Activities -->
         <activity
             android:name="com.example.ui.alarm.AlarmActivity"
             android:exported="false"
@@ -66,11 +76,13 @@
             android:taskAffinity=""
             android:theme="@style/Theme.MyApplication" />
 
+        <!-- Alarm Foreground Service -->
         <service
             android:name="com.example.service.AlarmService"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse|mediaPlayback" />
 
+        <!-- Receivers -->
         <receiver
             android:name="com.example.receiver.ReminderReceiver"
             android:exported="false">
@@ -84,6 +96,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.example.ACTION_TRIGGER_REMINDER" />
+                <action android:name="com.example.ACTION_MARK_DONE" />
+                <action android:name="com.example.ACTION_SNOOZE_10" />
             </intent-filter>
         </receiver>
 
@@ -93,6 +107,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
     </application>

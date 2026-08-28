@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderEntity
 import com.example.data.model.ReminderStatus
+import com.example.data.preferences.PreferenceManager
 import com.example.data.preferences.UserPreferencesRepository
 import com.example.data.repository.ReminderRepository
 import com.example.service.AlarmScheduler
 import com.example.service.GeminiReminderService
 import com.example.service.ParsedReminderResult
+import com.example.service.SmartVoiceParser
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -38,6 +40,10 @@ data class UiState(
     val isOnboardingDone: Boolean = false,
     val isDarkMode: Boolean? = null,
     val activeReminderCount: Int = 0,
+    val remindersCreatedCount: Int = 0,
+    val isProUnlocked: Boolean = false,
+    val isLocked: Boolean = false,
+    val remainingFreeCount: Int = 2,
     val isParsingVoice: Boolean = false,
     val voiceParseError: String? = null,
     val lastParsedResult: ParsedReminderResult? = null
@@ -62,6 +68,8 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     private val _showPaywallLimitDialog = MutableStateFlow(false)
     val showPaywallLimitDialog: StateFlow<Boolean> = _showPaywallLimitDialog.asStateFlow()
+
+    private val _preferenceRefreshTrigger = MutableStateFlow(System.currentTimeMillis())
 
     private val voiceSettingsFlow = combine(userPrefs.voiceGenderFlow, userPrefs.voicePresetFlow) { gender, preset ->
         UserVoice(gender, preset)
@@ -89,11 +97,18 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     val uiState: StateFlow<UiState> = combine(
         userBasicState,
-        userExtraState
-    ) { basic, extra ->
+        userExtraState,
+        _preferenceRefreshTrigger
+    ) { basic, extra, _ ->
+        val app = getApplication<Application>()
+        val proUnlocked = PreferenceManager.isProUnlocked(app) || basic.isPremium
+        val createdCount = PreferenceManager.getRemindersCreatedCount(app)
+        val locked = PreferenceManager.isLocked(app) && !basic.isPremium
+        val remaining = if (proUnlocked) Int.MAX_VALUE else (PreferenceManager.MAX_FREE_REMINDERS - createdCount).coerceAtLeast(0)
+
         UiState(
             userName = basic.name,
-            isPremium = basic.isPremium,
+            isPremium = proUnlocked,
             language = basic.language,
             voiceGender = basic.voice.gender,
             voicePreset = basic.voice.preset,
@@ -102,7 +117,11 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             loginProvider = extra.provider,
             isOnboardingDone = extra.onboarding,
             isDarkMode = extra.darkMode,
-            activeReminderCount = extra.activeCount
+            activeReminderCount = extra.activeCount,
+            remindersCreatedCount = createdCount,
+            isProUnlocked = proUnlocked,
+            isLocked = locked,
+            remainingFreeCount = remaining
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState())
 
@@ -159,6 +178,10 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         list.filter { it.timeMillis in start..end }.sortedBy { it.timeMillis }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    fun refreshPreferences() {
+        _preferenceRefreshTrigger.value = System.currentTimeMillis()
+    }
+
     fun selectTab(tab: HomeFilterTab) {
         _selectedTab.value = tab
     }
@@ -206,63 +229,96 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     fun setPremiumStatus(isPremium: Boolean) {
         viewModelScope.launch {
+            PreferenceManager.setProUnlocked(getApplication(), isPremium)
             userPrefs.setPremiumStatus(isPremium)
+            refreshPreferences()
         }
+    }
+
+    fun unlockWithSecretKey(key: String): Boolean {
+        val success = PreferenceManager.verifyAndUnlockSecretKey(getApplication(), key)
+        if (success) {
+            viewModelScope.launch {
+                userPrefs.setPremiumStatus(true)
+                refreshPreferences()
+            }
+        }
+        return success
     }
 
     fun parseVoiceReminder(userPrompt: String, onComplete: (ReminderEntity?) -> Unit) {
         viewModelScope.launch {
             val name = uiState.value.userName
-            val result = geminiService.parseNaturalLanguageReminder(userPrompt, name)
+            // 1. Fast, highly reliable natural language keyword parser
+            val localParsed = SmartVoiceParser.parse(userPrompt, name)
 
             try {
-                val dateParts = result.dateString.split("-")
-                val timeParts = result.timeString.split(":")
-
-                val cal = Calendar.getInstance()
-                if (dateParts.size == 3) {
-                    cal.set(Calendar.YEAR, dateParts[0].toInt())
-                    cal.set(Calendar.MONTH, dateParts[1].toInt() - 1)
-                    cal.set(Calendar.DAY_OF_MONTH, dateParts[2].toInt())
-                }
-                if (timeParts.size == 2) {
-                    cal.set(Calendar.HOUR_OF_DAY, timeParts[0].toInt())
-                    cal.set(Calendar.MINUTE, timeParts[1].toInt())
-                    cal.set(Calendar.SECOND, 0)
-                }
-
-                if (cal.timeInMillis <= System.currentTimeMillis()) {
-                    cal.add(Calendar.DAY_OF_MONTH, 1)
-                }
-
+                // If local parser succeeded with valid title & future timestamp
                 val reminder = ReminderEntity(
-                    title = result.title,
+                    title = localParsed.title,
                     description = userPrompt,
-                    timeMillis = cal.timeInMillis,
-                    repeatType = result.repeatType,
-                    customVoiceScript = result.voiceGreeting.ifEmpty {
-                        "Hello $name, it's time for your reminder: ${result.title}"
-                    }
+                    timeMillis = localParsed.timeMillis,
+                    repeatType = "ONCE",
+                    customVoiceScript = localParsed.voiceScript,
+                    voicePreset = uiState.value.voicePreset
                 )
                 onComplete(reminder)
             } catch (e: Exception) {
-                onComplete(null)
+                // Fallback to Gemini AI service
+                try {
+                    val result = geminiService.parseNaturalLanguageReminder(userPrompt, name)
+                    val dateParts = result.dateString.split("-")
+                    val timeParts = result.timeString.split(":")
+
+                    val cal = Calendar.getInstance()
+                    if (dateParts.size == 3) {
+                        cal.set(Calendar.YEAR, dateParts[0].toInt())
+                        cal.set(Calendar.MONTH, dateParts[1].toInt() - 1)
+                        cal.set(Calendar.DAY_OF_MONTH, dateParts[2].toInt())
+                    }
+                    if (timeParts.size == 2) {
+                        cal.set(Calendar.HOUR_OF_DAY, timeParts[0].toInt())
+                        cal.set(Calendar.MINUTE, timeParts[1].toInt())
+                        cal.set(Calendar.SECOND, 0)
+                    }
+                    if (cal.timeInMillis <= System.currentTimeMillis()) {
+                        cal.add(Calendar.DAY_OF_MONTH, 1)
+                    }
+
+                    val geminiReminder = ReminderEntity(
+                        title = result.title,
+                        description = userPrompt,
+                        timeMillis = cal.timeInMillis,
+                        repeatType = result.repeatType,
+                        customVoiceScript = result.voiceGreeting.ifEmpty {
+                            "Hello $name, this is your reminder for ${result.title}"
+                        },
+                        voicePreset = uiState.value.voicePreset
+                    )
+                    onComplete(geminiReminder)
+                } catch (e2: Exception) {
+                    onComplete(null)
+                }
             }
         }
     }
 
     fun addReminder(reminder: ReminderEntity, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
-            val currentState = uiState.value
-            if (!currentState.isPremium && currentState.activeReminderCount >= 2) {
+            val app = getApplication<Application>()
+            val isLocked = PreferenceManager.isLocked(app)
+
+            if (isLocked) {
                 _showPaywallLimitDialog.value = true
-                onError("Free plan is limited to 2 active reminders. Upgrade for just ₹40/month (or $4.99/year) to unlock unlimited voice reminders.")
+                onError("You have used your 2 free reminders. Please upgrade to Pro to create unlimited reminders.")
                 return@launch
             }
 
             val id = repository.insertReminder(reminder)
             val newReminder = reminder.copy(id = id)
             alarmScheduler.schedule(newReminder)
+            PreferenceManager.incrementRemindersCreatedCount(app)
+            refreshPreferences()
             onSuccess()
         }
     }
@@ -296,7 +352,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val reminder = repository.getReminderById(id)
             if (reminder != null) {
-                val snoozedTime = System.currentTimeMillis() + (minutes * 60 * 1000)
+                val snoozedTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
                 val updated = reminder.copy(
                     timeMillis = snoozedTime,
                     status = ReminderStatus.PENDING.name

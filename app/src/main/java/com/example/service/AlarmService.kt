@@ -299,7 +299,7 @@ class AlarmService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // Direct Dismiss Action PendingIntent
+            // Direct Dismiss / Mark as Done Action PendingIntent
             val dismissIntent = Intent(this, AlarmService::class.java).apply {
                 action = ACTION_DISMISS_ALARM
                 putExtra(EXTRA_REMINDER_ID, id)
@@ -311,11 +311,11 @@ class AlarmService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // Direct Snooze Action PendingIntent (5 mins)
+            // Direct Snooze Action PendingIntent (10 mins)
             val snoozeIntent = Intent(this, AlarmService::class.java).apply {
                 action = ACTION_SNOOZE_ALARM
                 putExtra(EXTRA_REMINDER_ID, id)
-                putExtra(EXTRA_SNOOZE_MINUTES, 5)
+                putExtra(EXTRA_SNOOZE_MINUTES, 10)
             }
             val snoozePendingIntent = PendingIntent.getService(
                 this,
@@ -345,8 +345,8 @@ class AlarmService : Service() {
                 .setSound(alarmSoundUri, AudioManager.STREAM_ALARM)
                 .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Dismiss", dismissPendingIntent)
-                .addAction(android.R.drawable.ic_popup_sync, "Snooze 5m", snoozePendingIntent)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Mark as Done", dismissPendingIntent)
+                .addAction(android.R.drawable.ic_popup_sync, "Snooze 10 Mins", snoozePendingIntent)
                 .build()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

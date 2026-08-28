@@ -42,6 +42,7 @@ fun HomeScreen(
     searchQuery: String,
     onSelectTab: (HomeFilterTab) -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    on1TapMic: () -> Unit,
     onOpenVoiceDialog: () -> Unit,
     onOpenAddReminder: () -> Unit,
     onOpenCalendar: () -> Unit,
@@ -87,17 +88,17 @@ fun HomeScreen(
                             color = DeepSlateNavy
                         )
                         Text(
-                            text = "Smart Full Screen Reminders & Alarms",
+                            text = "Smart Voice & Alarm Reminders",
                             style = MaterialTheme.typography.labelSmall,
                             color = SlateMutedText
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenVoiceDialog) {
+                    IconButton(onClick = on1TapMic) {
                         Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "AI Voice Assistant",
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "1-Tap Voice Reminder",
                             tint = OceanBlueAccent
                         )
                     }
@@ -119,19 +120,22 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onOpenAddReminder,
+            ExtendedFloatingActionButton(
+                onClick = on1TapMic,
                 containerColor = OceanBlueAccent,
                 contentColor = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.size(60.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Quick Add Reminder",
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "1-Tap Mic",
+                        modifier = Modifier.size(26.dp)
+                    )
+                },
+                text = {
+                    Text("1-Tap Mic", fontWeight = FontWeight.Bold)
+                }
+            )
         }
     ) { innerPadding ->
         LazyColumn(
@@ -142,6 +146,99 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
         ) {
+
+            // Trial / Pro Status Banner
+            item {
+                if (uiState.isProUnlocked || uiState.isPremium) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFECFDF5)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF059669),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "⭐ Memory Plus Pro Activated",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF065F46)
+                                    )
+                                    Text(
+                                        text = "Unlimited Alarms • AI Voice • Battery Exact",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF047857)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Card(
+                        onClick = onOpenPaywall,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Free Trial: ${uiState.remainingFreeCount} of 2 reminders left",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF92400E)
+                                    )
+                                    Text(
+                                        text = if (uiState.remainingFreeCount > 0) "Create up to 2 reminders free" else "Limit reached! Upgrade to unlock unlimited",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFFB45309)
+                                    )
+                                }
+                            }
+                            Button(
+                                onClick = onOpenPaywall,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Upgrade", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
 
             // Primary "Set Reminder" Hero Card in Sky Blue Container
             item {
