@@ -88,17 +88,17 @@ fun HomeScreen(
                             color = DeepSlateNavy
                         )
                         Text(
-                            text = "Smart Voice & Alarm Reminders",
+                            text = "Smart Alarms & Task Reminders",
                             style = MaterialTheme.typography.labelSmall,
                             color = SlateMutedText
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = on1TapMic) {
+                    IconButton(onClick = onOpenAddReminder) {
                         Icon(
-                            imageVector = Icons.Default.Mic,
-                            contentDescription = "1-Tap Voice Reminder",
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Reminder",
                             tint = OceanBlueAccent
                         )
                     }
@@ -121,19 +121,19 @@ fun HomeScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = on1TapMic,
+                onClick = onOpenAddReminder,
                 containerColor = OceanBlueAccent,
                 contentColor = Color.White,
-                shape = CircleShape,
+                shape = RoundedCornerShape(16.dp),
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "1-Tap Mic",
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Reminder",
                         modifier = Modifier.size(26.dp)
                     )
                 },
                 text = {
-                    Text("1-Tap Mic", fontWeight = FontWeight.Bold)
+                    Text("Add Reminder", fontWeight = FontWeight.Bold)
                 }
             )
         }

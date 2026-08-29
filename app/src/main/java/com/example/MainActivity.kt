@@ -54,9 +54,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Battery Optimization check for reliable alarms
-        checkAndRequestBatteryOptimization()
-
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val allReminders by viewModel.allReminders.collectAsStateWithLifecycle()
