@@ -2,8 +2,11 @@ package com.example.ui.paywall
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -12,7 +15,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,17 +25,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,16 +45,20 @@ import androidx.compose.ui.unit.sp
 import com.example.data.preferences.PreferenceManager
 import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.MyApplicationTheme
-import java.util.Locale
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 
 class PaywallActivity : ComponentActivity() {
 
     companion object {
-        const val UPI_PA = "Umagurjar1@bpunity"
-        const val UPI_PN = "Memory Plus"
+        const val UPI_PA = "7024991656@apl"
+        const val UPI_PN = "vikas g"
         const val UPI_AM = "399"
         const val UPI_CU = "INR"
         const val UPI_TN = "Memory Plus Pro Lifetime"
+        const val MASTER_SECRET_KEY = "MP2026PRO"
+        const val SHARED_PREFS_FILE = "MemoryPlusPrefs"
+        const val KEY_IS_PRO_UNLOCKED = "is_pro_unlocked"
 
         fun getUpiUriString(): String {
             return "upi://pay?pa=$UPI_PA" +
@@ -65,19 +76,38 @@ class PaywallActivity : ComponentActivity() {
         }
     }
 
-    // 1. UPI Activity Result Launcher
-    private val upiPaymentLauncher = registerForActivityResult(
+    // 1. One-Tap UPI Activity Result Handler
+    private val upiLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        handleUpiPaymentResult(result.resultCode, result.data)
+        val response = result.data?.getStringExtra("response") ?: ""
+        Log.d("PaywallActivity", "UPI Response: $response | resultCode: ${result.resultCode}")
+
+        val isSuccess = response.contains("status=SUCCESS", ignoreCase = true) ||
+                response.contains("status=SUBMITTED", ignoreCase = true) ||
+                response.contains("Status=SUCCESS", ignoreCase = true)
+
+        if (isSuccess) {
+            showSuccessDialogAndUnlock()
+        } else {
+            Toast.makeText(this, "Payment cancelled or incomplete.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val upiUriString = getUpiUriString()
+        val qrBitmap = generateQrBitmap(upiUriString, 512)
+
         setContent {
             MyApplicationTheme(darkTheme = true) {
                 PaywallScreenContent(
+                    qrBitmap = qrBitmap,
+                    upiId = UPI_PA,
+                    onCopyUpiId = {
+                        copyUpiIdToClipboard(UPI_PA)
+                    },
                     onPayClicked = {
                         launchUpiPaymentIntent()
                     },
@@ -90,52 +120,42 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * Manual Secret Key Fallback: Unlocks ONLY when exact key "MP2026PRO" is entered
+     * Generate 512x512 QR Code Bitmap at runtime
      */
-    private fun showSecretKeyDialog() {
-        val input = android.widget.EditText(this).apply {
-            hint = "Enter Pro Activation Key"
-            setPadding(48, 32, 48, 32)
+    private fun generateQrBitmap(content: String, size: Int = 512): Bitmap? {
+        return try {
+            val barcodeEncoder = BarcodeEncoder()
+            barcodeEncoder.encodeBitmap(content, BarcodeFormat.QR_CODE, size, size)
+        } catch (e: Exception) {
+            Log.e("PaywallActivity", "Failed to generate QR code", e)
+            null
         }
-        AlertDialog.Builder(this)
-            .setTitle("Enter Pro Key")
-            .setMessage("If you paid manually via QR or need offline access, enter your activation key:")
-            .setView(input)
-            .setPositiveButton("Activate") { dialog, _ ->
-                val key = input.text.toString().trim()
-                if (PreferenceManager.verifyAndUnlockSecretKey(this, key)) {
-                    Toast.makeText(this, "Pro Unlocked Successfully 🎉", Toast.LENGTH_LONG).show()
-                    dialog.dismiss()
-                    setResult(Activity.RESULT_OK)
-                    finish()
-                } else {
-                    Toast.makeText(this, "Invalid Activation Key", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .show()
     }
 
     /**
-     * Launch Native UPI Payment Intent
+     * Copy UPI ID to device clipboard
+     */
+    private fun copyUpiIdToClipboard(upiId: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("UPI ID", upiId)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(this, "UPI ID copied: $upiId", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * One-Tap UPI Intent Launcher
      */
     private fun launchUpiPaymentIntent() {
         try {
-            val uriString = "upi://pay?pa=$UPI_PA" +
-                    "&pn=" + Uri.encode(UPI_PN) +
-                    "&am=$UPI_AM" +
-                    "&cu=$UPI_CU" +
-                    "&tn=" + Uri.encode(UPI_TN)
+            val uri = Uri.parse(getUpiUriString())
+            val upiIntent = Intent(Intent.ACTION_VIEW, uri)
+            val chooser = Intent.createChooser(upiIntent, "Pay ₹399 via UPI")
 
-            val upiUri = Uri.parse(uriString)
-            val intent = Intent(Intent.ACTION_VIEW, upiUri)
-            val chooser = Intent.createChooser(intent, "Pay ₹399 via UPI")
-
-            if (intent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
-                upiPaymentLauncher.launch(chooser)
+            if (upiIntent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
+                upiLauncher.launch(chooser)
             } else {
                 try {
-                    upiPaymentLauncher.launch(intent)
+                    upiLauncher.launch(upiIntent)
                 } catch (e: Exception) {
                     Toast.makeText(
                         this,
@@ -151,61 +171,64 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * Strict UPI Response Handler:
-     * - Disallows empty/null response
-     * - Disallows RESULT_CANCELED
-     * - ONLY unlocks if status is "SUCCESS" or "SUBMITTED"
+     * Payment Success Dialog & Pro Unlock
      */
-    private fun handleUpiPaymentResult(resultCode: Int, data: Intent?) {
-        val response = data?.getStringExtra("response") ?: ""
-        Log.d("PaywallActivity", "UPI Response: $response | resultCode: $resultCode")
+    private fun showSuccessDialogAndUnlock() {
+        // Set SharedPreferences is_pro_unlocked = true
+        val prefs = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_IS_PRO_UNLOCKED, true).apply()
+        PreferenceManager.setProUnlocked(this, true)
 
-        if (resultCode == Activity.RESULT_OK && response.isNotBlank() && isUpiSuccess(response)) {
-            // Update SharedPreferences: is_pro_unlocked = true
-            PreferenceManager.setProUnlocked(this, true)
-
-            Toast.makeText(
-                this,
-                "Payment Successful! Memory Plus Pro Lifetime Unlocked 🎉",
-                Toast.LENGTH_LONG
-            ).show()
-
-            setResult(Activity.RESULT_OK)
-            finish()
-        } else {
-            Toast.makeText(
-                this,
-                "Payment failed or cancelled. Pro remains locked.",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+        // Display non-cancelable Material AlertDialog
+        AlertDialog.Builder(this)
+            .setTitle("🎉 Payment Successful!")
+            .setMessage("Payment of ₹399 received.\n\n🔑 Your Lifetime Key: $MASTER_SECRET_KEY\n\nMemory Plus Pro is now permanently unlocked on this device!")
+            .setCancelable(false)
+            .setPositiveButton("Continue to App") { dialog, _ ->
+                dialog.dismiss()
+                setResult(Activity.RESULT_OK)
+                finish()
+            }
+            .show()
     }
 
     /**
-     * Helper to parse UPI key-values and status strictly
+     * Fallback Secret Key Dialog: Unlocks with "MP2026PRO"
      */
-    private fun isUpiSuccess(response: String): Boolean {
-        if (response.isBlank()) {
-            return false
+    private fun showSecretKeyDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "Enter Pro Key (e.g. MP2026PRO)"
+            setPadding(48, 32, 48, 32)
         }
+        AlertDialog.Builder(this)
+            .setTitle("Enter Pro Key")
+            .setMessage("If you paid manually via QR code or have an offline activation key, enter it below:")
+            .setView(input)
+            .setPositiveButton("Activate") { dialog, _ ->
+                val key = input.text.toString().trim()
+                if (key.equals(MASTER_SECRET_KEY, ignoreCase = true) || PreferenceManager.verifyAndUnlockSecretKey(this, key)) {
+                    val prefs = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+                    prefs.edit().putBoolean(KEY_IS_PRO_UNLOCKED, true).apply()
+                    PreferenceManager.setProUnlocked(this, true)
 
-        // Parse key=value pairs standard in NPCI UPI responses (e.g. txnId=...&responseCode=...&Status=SUCCESS&...)
-        val params = response.split("&").associate { entry ->
-            val parts = entry.split("=")
-            if (parts.size == 2) {
-                parts[0].trim().lowercase(Locale.ROOT) to parts[1].trim()
-            } else {
-                parts[0].trim().lowercase(Locale.ROOT) to ""
+                    Toast.makeText(this, "Pro Lifetime Activated!", Toast.LENGTH_LONG).show()
+                    dialog.dismiss()
+                    setResult(Activity.RESULT_OK)
+                    finish()
+                } else {
+                    Toast.makeText(this, "Invalid Activation Key", Toast.LENGTH_SHORT).show()
+                }
             }
-        }
-
-        val status = params["status"] ?: params["txnstatus"] ?: ""
-        return status.equals("SUCCESS", ignoreCase = true) || status.equals("SUBMITTED", ignoreCase = true)
+            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 }
 
 @Composable
 fun PaywallScreenContent(
+    qrBitmap: Bitmap?,
+    upiId: String,
+    onCopyUpiId: () -> Unit,
     onPayClicked: () -> Unit,
     onEnterKeyClicked: () -> Unit
 ) {
@@ -223,13 +246,13 @@ fun PaywallScreenContent(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 1. Top Banner / Badge: 2-Day Limited Time Offer
+            // 1. Top Badge: "🔥 2 FREE REMINDERS USED — UPGRADE TO PRO"
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color(0xFFEA580C)
             ) {
                 Text(
-                    text = "🔥 LIMITED TIME LAUNCH OFFER (2 DAYS ONLY)",
+                    text = "🔥 2 FREE REMINDERS USED — UPGRADE TO PRO",
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -243,7 +266,7 @@ fun PaywallScreenContent(
             // Lock Graphic Icon
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(
                         brush = Brush.linearGradient(
@@ -256,26 +279,26 @@ fun PaywallScreenContent(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Lock Icon",
                     tint = Color.White,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Header
+            // Title
             Text(
-                text = "Memory Plus Pro - Upgrade Required",
+                text = "Memory Plus Pro",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Subtitle
             Text(
-                text = "You have reached the limit of 2 free reminders/actions. Upgrade to unlock unlimited voice reminders & edits forever.",
+                text = "Scan QR or tap below to unlock unlimited voice reminders, alarms & edits forever.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF94A3B8),
                 textAlign = TextAlign.Center,
@@ -284,10 +307,10 @@ fun PaywallScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Pricing Display Card
+            // 2. Dynamic QR Code Card (220dp x 220dp with white background padding)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                 border = BorderStroke(1.dp, Color(0xFF334155))
             ) {
@@ -297,41 +320,80 @@ fun PaywallScreenContent(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Original Price (Strikethrough)
+                    // Price Tag
                     Text(
-                        text = "₹999 / Year",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                        ),
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF94A3B8)
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Deal Price (Large Bold Green)
-                    Text(
-                        text = "₹399 Lifetime Access",
-                        fontSize = 24.sp,
+                        text = "₹399 One-Time Lifetime",
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF10B981)
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                    // Savings Note / Subtext
                     Text(
-                        text = "Pay Once • Lifetime Unlimited Reminders & Edits",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AmberAccent
+                        text = "Scan with any UPI App (PhonePe / GPay / Paytm)",
+                        fontSize = 12.sp,
+                        color = Color(0xFF94A3B8)
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // QR Code Frame
+                    Box(
+                        modifier = Modifier
+                            .size(220.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .padding(10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (qrBitmap != null) {
+                            Image(
+                                bitmap = qrBitmap.asImageBitmap(),
+                                contentDescription = "UPI Payment QR Code",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                color = Color(0xFF10B981),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // UPI ID with Copy Action
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF0F172A),
+                        modifier = Modifier.clickable { onCopyUpiId() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "UPI ID: $upiId",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy UPI ID",
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Feature List Card
+            // 3. Feature Highlights
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -340,7 +402,7 @@ fun PaywallScreenContent(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PaywallFeatureRow("Unlimited Alarms, Edits & Voice Notes")
                     PaywallFeatureRow("1-Tap AI Natural Voice Input")
@@ -349,9 +411,9 @@ fun PaywallScreenContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Button: Primary UPI Intent
+            // 4. Primary Emerald Green Button: "Pay ₹399 via UPI (PhonePe / GPay / Paytm)"
             Button(
                 onClick = onPayClicked,
                 modifier = Modifier
@@ -363,16 +425,16 @@ fun PaywallScreenContent(
                 Icon(Icons.Default.Payment, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Pay ₹399 via PhonePe / GPay / UPI",
+                    text = "Pay ₹399 via UPI (PhonePe / GPay / Paytm)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Manual Key Fallback Button: Unlocks ONLY with MP2026PRO
+            // 5. Secondary Button: "Already Paid? Enter Secret Key"
             TextButton(
                 onClick = onEnterKeyClicked,
                 modifier = Modifier
@@ -394,9 +456,9 @@ fun PaywallScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Secure Payment Badge
+            // Security Badge
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -428,12 +490,12 @@ private fun PaywallFeatureRow(text: String) {
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
             tint = Color(0xFF10B981),
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = text,
-            fontSize = 14.sp,
+            fontSize = 13.5.sp,
             fontWeight = FontWeight.Medium,
             color = Color(0xFFF1F5F9)
         )
