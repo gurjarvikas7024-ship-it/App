@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 object PreferenceManager {
 
     const val PREFS_NAME = "MemoryPlusPrefs"
+    const val KEY_REMINDER_COUNT = "reminder_count"
     const val KEY_LIFETIME_ACTIONS_COUNT = "lifetime_actions_count"
     const val KEY_LIFETIME_REMINDERS_CREATED = "lifetime_reminders_created"
     const val KEY_REMINDERS_COUNT = "reminders_count"
@@ -21,13 +22,21 @@ object PreferenceManager {
     @JvmStatic
     fun getLifetimeActionsCount(context: Context): Int {
         val prefs = getPrefs(context)
+        val directCount = prefs.getInt(KEY_REMINDER_COUNT, -1)
+        if (directCount != -1) {
+            return directCount
+        }
         val actions = prefs.getInt(KEY_LIFETIME_ACTIONS_COUNT, -1)
         if (actions != -1) {
+            prefs.edit().putInt(KEY_REMINDER_COUNT, actions).apply()
             return actions
         }
         // Fallback/migration from previous keys if present
         val legacyCreated = prefs.getInt(KEY_LIFETIME_REMINDERS_CREATED, prefs.getInt(KEY_REMINDERS_COUNT, 0))
-        prefs.edit().putInt(KEY_LIFETIME_ACTIONS_COUNT, legacyCreated).apply()
+        prefs.edit()
+            .putInt(KEY_REMINDER_COUNT, legacyCreated)
+            .putInt(KEY_LIFETIME_ACTIONS_COUNT, legacyCreated)
+            .apply()
         return legacyCreated
     }
 
@@ -37,6 +46,7 @@ object PreferenceManager {
         val current = getLifetimeActionsCount(context)
         val next = current + 1
         prefs.edit()
+            .putInt(KEY_REMINDER_COUNT, next)
             .putInt(KEY_LIFETIME_ACTIONS_COUNT, next)
             .putInt(KEY_LIFETIME_REMINDERS_CREATED, next)
             .putInt(KEY_REMINDERS_COUNT, next)
