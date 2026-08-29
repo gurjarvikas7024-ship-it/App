@@ -4,14 +4,20 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.MultiFormatWriter
+import com.journeyapps.barcodescanner.BarcodeEncoder
 
 class PaywallActivity : AppCompatActivity() {
 
@@ -23,9 +29,38 @@ class PaywallActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_paywall)
 
+        val ivQrCode = findViewById<ImageView>(R.id.ivQrCode)
         val btnCopyUpi = findViewById<Button>(R.id.btnCopyUpi)
         val btnWhatsappShare = findViewById<Button>(R.id.btnWhatsappShare)
         val btnEnterKey = findViewById<Button>(R.id.btnEnterKey)
+
+        // Generate and display crisp scannable UPI QR Code
+        val upiUri = "upi://pay?pa=$upiId&pn=MemoryPlus&am=399&cu=INR&tn=MemoryPlusLifetimePro"
+        try {
+            val hints = mapOf(
+                EncodeHintType.MARGIN to 1,
+                EncodeHintType.CHARACTER_SET to "UTF-8"
+            )
+            val multiFormatWriter = MultiFormatWriter()
+            val bitMatrix = multiFormatWriter.encode(upiUri, BarcodeFormat.QR_CODE, 600, 600, hints)
+            val barcodeEncoder = BarcodeEncoder()
+            val bitmap: Bitmap = barcodeEncoder.createBitmap(bitMatrix)
+            ivQrCode.setImageBitmap(bitmap)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        ivQrCode.setOnClickListener {
+            try {
+                val upiIntent = Intent(Intent.ACTION_VIEW, Uri.parse(upiUri))
+                startActivity(Intent.createChooser(upiIntent, "Pay ₹399 with UPI App"))
+            } catch (e: Exception) {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("UPI ID", upiId)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "UPI ID copied: $upiId", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         btnCopyUpi.setOnClickListener {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
