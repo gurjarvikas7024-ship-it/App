@@ -1,0 +1,63 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="210dp"
+    android:height="210dp"
+    android:viewportWidth="210"
+    android:viewportHeight="210">
+
+    <!-- White Background -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,0h210v210h-210z" />
+
+    <!-- Outer Corner QR Position Blocks -->
+    <!-- Top-Left Corner Box -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M20,20h45v45h-45z M27,27v31h31v-31z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M33,33h19v19h-19z" />
+
+    <!-- Top-Right Corner Box -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M145,20h45v45h-45z M152,27v31h31v-31z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M158,33h19v19h-19z" />
+
+    <!-- Bottom-Left Corner Box -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M20,145h45v45h-45z M27,152v31h31v-31z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M33,158h19v19h-19z" />
+
+    <!-- QR Data Matrix Dots / Modules -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="
+        M75,20h8v8h-8z M90,20h8v8h-8z M105,20h8v8h-8z M125,20h10v8h-10z
+        M75,32h15v8h-15z M100,32h8v8h-8z M120,32h15v8h-15z
+        M75,44h8v8h-8z M95,44h15v8h-15z M125,44h10v8h-10z
+        M75,56h20v8h-20z M110,56h10v8h-10z M128,56h8v8h-8z
+        M20,75h8v8h-8z M35,75h10v8h-10z M55,75h8v8h-8z M75,75h12v12h-12z M95,75h8v8h-8z M110,75h15v8h-15z M135,75h8v8h-8z M155,75h10v8h-10z M175,75h15v8h-15z
+        M20,88h15v8h-15z M45,88h8v8h-8z M60,88h15v8h-15z M90,88h15v8h-15z M120,88h8v8h-8z M140,88h20v8h-20z M170,88h10v8h-10z
+        M20,100h8v8h-8z M35,100h20v8h-20z M70,100h10v8h-10z M100,100h10v8h-10z M130,100h15v8h-15z M160,100h8v8h-8z M180,100h10v8h-10z
+        M20,115h12v8h-12z M40,115h8v8h-8z M60,115h15v8h-15z M85,115h10v8h-10z M115,115h8v8h-8z M135,115h18v8h-18z M165,115h10v8h-10z M185,115h8v8h-8z
+        M20,128h20v8h-20z M50,128h15v8h-15z M75,128h8v8h-8z M95,128h20v8h-20z M125,128h15v8h-15z M150,128h8v8h-8z M170,128h20v8h-20z
+        M75,145h8v8h-8z M90,145h15v8h-15z M115,145h10v8h-10z M135,145h8v8h-8z M150,145h20v8h-20z M180,145h10v8h-10z
+        M75,158h15v8h-15z M100,158h8v8h-8z M120,158h15v8h-15z M145,158h10v8h-10z M165,158h15v8h-15z
+        M75,170h10v8h-10z M95,170h12v8h-12z M120,170h8v8h-8z M140,170h18v8h-18z M170,170h10v8h-10z
+        M75,182h8v8h-8z M90,182h20v8h-20z M120,182h12v8h-12z M145,182h15v8h-15z M175,182h15v8h-15z
+        " />
+
+    <!-- Center PhonePe Badge Icon Graphic -->
+    <path
+        android:fillColor="#5F259F"
+        android:pathData="M90,90h30v30h-30z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M98,96h8c4,0 7,3 7,7c0,4 -3,7 -7,7h-4v6h-4v-20z M102,100v6h4c2,0 3.5,-1.3 3.5,-3c0,-1.7 -1.5,-3 -3.5,-3h-4z" />
+</vector>

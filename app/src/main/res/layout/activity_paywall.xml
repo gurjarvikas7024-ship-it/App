@@ -12,19 +12,19 @@
         android:padding="20dp"
         android:gravity="center_horizontal">
 
-        <!-- 1. TOP URGENCY PILL BADGE -->
+        <!-- 1. TOP FOMO BADGE -->
         <LinearLayout
-            android:id="@+id/ll_urgency_badge"
+            android:id="@+id/ll_fomo_badge"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="#33DC2626"
+            android:layout_marginTop="6dp"
+            android:background="#26DC2626"
             android:orientation="vertical"
             android:padding="12dp"
             android:gravity="center">
 
             <TextView
-                android:id="@+id/tv_urgency_badge_title"
+                android:id="@+id/tv_fomo_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🔥 EARLY BIRD OFFER — FIRST 1,000 USERS ONLY"
@@ -34,65 +34,20 @@
                 android:textAlignment="center" />
 
             <TextView
-                android:id="@+id/tv_urgency_badge_subtitle"
+                android:id="@+id/tv_fomo_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Price increases to ₹1,200/yr once 1,000 seats fill up"
-                android:textColor="#CBD5E1"
-                android:textSize="11sp"
+                android:layout_marginTop="3dp"
+                android:text="🔴 953 / 1,000 Claimed — Only 47 spots remaining at ₹399 (Regular ₹1,200/yr)"
+                android:textColor="#FDE047"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
                 android:textAlignment="center" />
         </LinearLayout>
 
-        <!-- 2. LIVE SLOTS PROGRESS BAR -->
+        <!-- 2. QR DISPLAY CARD -->
         <LinearLayout
-            android:id="@+id/ll_slots_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="#1E293B"
-            android:orientation="vertical"
-            android:padding="14dp">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    android:id="@+id/tv_slots_claimed"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:text="🔴 953 / 1,000 Claimed"
-                    android:textColor="#F87171"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tv_slots_left"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:text="Only 47 Lifetime Spots Left!"
-                    android:textColor="#FBBF24"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
-
-            <ProgressBar
-                android:id="@+id/pb_slots"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:layout_marginTop="8dp"
-                android:max="100"
-                android:progress="95"
-                android:progressTint="#EF4444" />
-        </LinearLayout>
-
-        <!-- 3. PRICE ANCHOR CARD -->
-        <LinearLayout
-            android:id="@+id/ll_price_card"
+            android:id="@+id/ll_qr_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
@@ -101,139 +56,100 @@
             android:padding="20dp"
             android:gravity="center_horizontal">
 
-            <!-- Regular Price Strikethrough -->
+            <!-- Clean White Frame for QR Code -->
+            <FrameLayout
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:background="#FFFFFF"
+                android:padding="8dp">
+
+                <ImageView
+                    android:id="@+id/iv_qr_code"
+                    android:layout_width="210dp"
+                    android:layout_height="210dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/qr_phonepe"
+                    android:contentDescription="Scan QR Code" />
+            </FrameLayout>
+
             <TextView
-                android:id="@+id/tv_regular_price"
+                android:id="@+id/tv_qr_instructions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Regular Price: ₹1,200 / Year"
-                android:textColor="#94A3B8"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="14dp"
+                android:text="Scan &amp; Pay ₹399 via Any UPI App&#10;(PhonePe / GPay / Paytm)"
+                android:textColor="#F1F5F9"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textAlignment="center"
+                android:lineSpacingExtra="2dp" />
 
-            <!-- Deal Price -->
+            <!-- UPI ID Bar with Copy Button -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/ll_upi_id_bar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="14dp"
+                android:background="#0F172A"
+                android:padding="10dp"
                 android:orientation="horizontal"
-                android:gravity="bottom">
+                android:gravity="center_vertical">
 
                 <TextView
-                    android:id="@+id/tv_deal_price"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tv_upi_id"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="₹399"
-                    android:textColor="#10B981"
-                    android:textSize="36sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginBottom="4dp"
-                    android:text="One-Time Lifetime Access"
-                    android:textColor="#F8FAFC"
+                    android:layout_weight="1"
+                    android:text="UPI ID: 7024991656@ybl"
+                    android:textColor="#38BDF8"
                     android:textSize="13sp"
                     android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btn_copy_upi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:backgroundTint="#334155"
+                    android:text="Copy"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
-
-            <!-- Save Badge -->
-            <TextView
-                android:id="@+id/tv_save_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="#40059669"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:text="SAVE 85% TODAY • ZERO MONTHLY FEES"
-                android:textColor="#34D399"
-                android:textSize="11.5sp"
-                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 4. FEATURE BULLETS -->
-        <LinearLayout
-            android:id="@+id/ll_features_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="#1E293B"
-            android:orientation="vertical"
-            android:padding="18dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ Unlimited Voice &amp; Photo Reminders"
-                android:textColor="#F1F5F9"
-                android:textSize="13.5sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔔 Smart Voice Alerts &amp; Notifications"
-                android:textColor="#F1F5F9"
-                android:textSize="13.5sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛡️ Lifetime Free Updates &amp; No Ads"
-                android:textColor="#F1F5F9"
-                android:textSize="13.5sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔒 Instant Auto-Unlock via UPI"
-                android:textColor="#F1F5F9"
-                android:textSize="13.5sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- 5. PRIMARY CTA BUTTON -->
+        <!-- 3. WHATSAPP CTA BUTTON -->
         <Button
-            android:id="@+id/btn_pay_upi"
+            android:id="@+id/btn_whatsapp_share"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="20dp"
-            android:backgroundTint="#059669"
-            android:text="⚡ GET LIFETIME PRO FOR ₹399"
+            android:layout_height="56dp"
+            android:layout_marginTop="18dp"
+            android:backgroundTint="#25D366"
+            android:text="💬 Share Screenshot on WhatsApp to Get Key"
             android:textColor="#FFFFFF"
-            android:textSize="15sp"
+            android:textSize="13.5sp"
             android:textStyle="bold" />
 
         <!-- Subtext -->
         <TextView
+            android:id="@+id/tv_whatsapp_subtext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="🔒 100% Safe Instant Payment via BharatPe / PhonePe / GPay / Paytm"
+            android:layout_marginTop="6dp"
+            android:text="Payment ka screenshot bhejein aur 1 minute me Activation Key paayein"
             android:textColor="#94A3B8"
             android:textSize="11.5sp"
             android:textAlignment="center" />
 
-        <!-- 6. SECONDARY LINK: Secret Key -->
+        <!-- 4. ENTER KEY BUTTON -->
         <Button
-            android:id="@+id/btn_secret_key"
+            android:id="@+id/btn_enter_activation_key"
             style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="Already Paid? Enter Secret Key"
-            android:textColor="#38BDF8"
-            android:textSize="13.5sp"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="16dp"
+            android:text="🔑 Enter Activation Key"
+            android:textColor="#10B981"
+            android:textSize="14.5sp"
             android:textStyle="bold" />
 
     </LinearLayout>

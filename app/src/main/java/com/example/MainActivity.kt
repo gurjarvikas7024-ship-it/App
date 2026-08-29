@@ -35,7 +35,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.data.model.ReminderEntity
-import com.example.data.preferences.PreferenceManager
 import com.example.service.SmartVoiceParser
 import com.example.ui.components.VoiceInputBottomSheet
 import com.example.ui.paywall.PaywallActivity
@@ -53,7 +52,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Battery Optimization check for Xiaomi, Samsung, Vivo, etc.
+        // Battery Optimization check for reliable alarms
         checkAndRequestBatteryOptimization()
 
         setContent {
@@ -69,21 +68,24 @@ class MainActivity : ComponentActivity() {
             var showVoiceModal by remember { mutableStateOf(false) }
             var editingReminder by remember { mutableStateOf<ReminderEntity?>(null) }
 
-            // Helper function to check gatekeeper status
+            // 1. Strict 2-Reminder Limit Gatekeeper
             fun checkGatekeeperAndProceed(): Boolean {
-                val prefs = context.getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
                 val isPro = prefs.getBoolean("is_pro_unlocked", false)
                 val count = prefs.getInt("reminder_count", 0)
 
                 if (!isPro && count >= 2) {
                     Toast.makeText(
-                        context,
-                        "Free limit reached (2/2). Upgrade to Pro for unlimited reminders!",
+                        this@MainActivity,
+                        "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
                         Toast.LENGTH_LONG
                     ).show()
-                    val intent = Intent(context, PaywallActivity::class.java)
-                    context.startActivity(intent)
-                    return false // Block action
+                    startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                    return false // Block reminder creation
+                }
+
+                if (!isPro) {
+                    prefs.edit().putInt("reminder_count", count + 1).apply()
                 }
                 return true
             }
@@ -102,7 +104,7 @@ class MainActivity : ComponentActivity() {
                     val spokenText = spokenTextList?.firstOrNull()?.trim()
 
                     if (!spokenText.isNullOrBlank()) {
-                        // Strict Reminder Creation Gatekeeper check
+                        // Gatekeeper check before saving voice reminder
                         if (!checkGatekeeperAndProceed()) {
                             return@rememberLauncherForActivityResult
                         }
@@ -184,21 +186,54 @@ class MainActivity : ComponentActivity() {
                                 onSelectTab = { viewModel.selectTab(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 on1TapMic = {
-                                    if (!checkGatekeeperAndProceed()) {
+                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                    val count = prefs.getInt("reminder_count", 0)
+
+                                    if (!isPro && count >= 2) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                                         return@HomeScreen
                                     }
+
                                     startNativeSpeechRecognizer(speechRecognizerLauncher)
                                 },
                                 onOpenVoiceDialog = {
-                                    if (!checkGatekeeperAndProceed()) {
+                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                    val count = prefs.getInt("reminder_count", 0)
+
+                                    if (!isPro && count >= 2) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                                         return@HomeScreen
                                     }
+
                                     showVoiceModal = true
                                 },
                                 onOpenAddReminder = {
-                                    if (!checkGatekeeperAndProceed()) {
+                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                    val count = prefs.getInt("reminder_count", 0)
+
+                                    if (!isPro && count >= 2) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                                         return@HomeScreen
                                     }
+
                                     editingReminder = null
                                     navController.navigate("add_edit")
                                 },
@@ -208,9 +243,20 @@ class MainActivity : ComponentActivity() {
                                 onToggleCompleted = { viewModel.markCompleted(it) },
                                 onDeleteReminder = { viewModel.deleteReminder(it) },
                                 onEditReminder = { reminder ->
-                                    if (!checkGatekeeperAndProceed()) {
+                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                    val count = prefs.getInt("reminder_count", 0)
+
+                                    if (!isPro && count >= 2) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                                         return@HomeScreen
                                     }
+
                                     editingReminder = reminder
                                     navController.navigate("add_edit")
                                 },
@@ -224,25 +270,47 @@ class MainActivity : ComponentActivity() {
                                 existingReminder = editingReminder,
                                 onBack = { navController.popBackStack() },
                                 onSave = { reminder ->
-                                    if (!checkGatekeeperAndProceed()) {
-                                        return@AddEditReminderScreen
-                                    }
-
                                     if (editingReminder == null) {
+                                        if (!checkGatekeeperAndProceed()) {
+                                            return@AddEditReminderScreen
+                                        }
+
                                         viewModel.addReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
                                             onError = {
-                                                Toast.makeText(context, "Free limit reached (2/2). Upgrade to Pro for unlimited reminders!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                                 PaywallActivity.start(context)
                                             }
                                         )
                                     } else {
+                                        val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                        val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                        val count = prefs.getInt("reminder_count", 0)
+
+                                        if (!isPro && count >= 2) {
+                                            Toast.makeText(
+                                                this@MainActivity,
+                                                "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                                            return@AddEditReminderScreen
+                                        }
+
                                         viewModel.updateReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
                                             onError = {
-                                                Toast.makeText(context, "Free limit reached (2/2). Upgrade to Pro for unlimited reminders!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                                 PaywallActivity.start(context)
                                             }
                                         )
@@ -260,9 +328,20 @@ class MainActivity : ComponentActivity() {
                                 onToggleCompleted = { viewModel.markCompleted(it) },
                                 onDeleteReminder = { viewModel.deleteReminder(it) },
                                 onEditReminder = { reminder ->
-                                    if (!checkGatekeeperAndProceed()) {
+                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                                    val count = prefs.getInt("reminder_count", 0)
+
+                                    if (!isPro && count >= 2) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                                         return@CalendarScreen
                                     }
+
                                     editingReminder = reminder
                                     navController.navigate("add_edit")
                                 },
@@ -315,7 +394,7 @@ class MainActivity : ComponentActivity() {
                             onDismissRequest = { viewModel.dismissPaywallDialog() },
                             title = {
                                 Text(
-                                    text = "Free Limit Reached (2/2)",
+                                    text = "2 Free Reminders Limit Reached",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = DeepSlateNavy
@@ -323,7 +402,7 @@ class MainActivity : ComponentActivity() {
                             },
                             text = {
                                 Text(
-                                    text = "You have used your 2 free reminders. Upgrade to Lifetime Pro for ₹399 to unlock unlimited voice and photo reminders forever!",
+                                    text = "You have reached your 2 free reminders limit. Upgrade to Lifetime Pro for ₹399 to unlock unlimited voice & photo reminders forever!",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = SlateMutedText
                                 )
@@ -337,7 +416,7 @@ class MainActivity : ComponentActivity() {
                                     colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Text("Upgrade to Pro (₹399)", fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Unlock Lifetime Pro (₹399)", fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             },
                             dismissButton = {
