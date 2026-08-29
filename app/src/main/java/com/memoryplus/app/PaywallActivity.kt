@@ -10,9 +10,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.MainActivity
 import com.example.R
-import com.example.data.preferences.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class PaywallActivity : AppCompatActivity() {
@@ -20,15 +18,6 @@ class PaywallActivity : AppCompatActivity() {
     private val masterSecretKey = "MP2026PRO"
     private val upiId = "7024991656@ybl"
     private val whatsappNumber = "917024991656"
-
-    companion object {
-        fun start(context: Context) {
-            val intent = Intent(context, PaywallActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            context.startActivity(intent)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,17 +60,13 @@ class PaywallActivity : AppCompatActivity() {
                 if (enteredCode.equals(masterSecretKey, ignoreCase = true)) {
                     val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
                     prefs.edit().putBoolean("is_pro_unlocked", true).apply()
-                    PreferenceManager.setProUnlocked(this, true)
 
                     MaterialAlertDialogBuilder(this)
                         .setTitle("🎉 Lifetime Pro Activated!")
-                        .setMessage("Memory Plus Lifetime Membership unlock ho chuki hai! Ab aap unlimited voice & photo reminders set kar sakte hain.")
+                        .setMessage("Memory Plus Lifetime Membership unlock ho chuki hai! Ab aap unlimited reminders set kar sakte hain.")
                         .setCancelable(false)
                         .setPositiveButton("Start Using App") { dialog, _ ->
                             dialog.dismiss()
-                            val mainIntent = Intent(this, MainActivity::class.java)
-                            mainIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                            startActivity(mainIntent)
                             finish()
                         }
                         .show()
