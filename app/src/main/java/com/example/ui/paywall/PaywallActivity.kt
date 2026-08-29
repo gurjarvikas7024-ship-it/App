@@ -43,11 +43,11 @@ import com.example.ui.theme.MyApplicationTheme
 class PaywallActivity : ComponentActivity() {
 
     companion object {
-        const val UPI_PA = "umagurjar1@bpunity"
+        const val UPI_PA = "BHARATPE.8N0I0W8E7X20381@fbpe"
         const val UPI_PN = "Memory Plus"
         const val UPI_AM = "399"
         const val UPI_CU = "INR"
-        const val UPI_TN = "Memory Plus Pro Lifetime Unlock"
+        const val UPI_TN = "Memory Plus Pro Lifetime"
         const val SHARED_PREFS_FILE = "MemoryPlusPrefs"
         const val KEY_IS_PRO_UNLOCKED = "is_pro_unlocked"
 
@@ -59,18 +59,19 @@ class PaywallActivity : ComponentActivity() {
         }
     }
 
-    // Activity Result Launcher to capture payment status directly from UPI apps
+    // Activity Result Launcher to capture and verify payment response from UPI apps
     private val upiLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val responseData = result.data?.getStringExtra("response") ?: ""
         Log.d("PaywallActivity", "UPI Response: $responseData | resultCode: ${result.resultCode}")
+        val lower = responseData.lowercase()
 
-        // Check if UPI payment returned SUCCESS or SUBMITTED status
-        val isSuccess = responseData.contains("status=SUCCESS", ignoreCase = true) ||
-                responseData.contains("status=SUBMITTED", ignoreCase = true) ||
-                responseData.contains("Status=SUCCESS", ignoreCase = true)
+        val isSuccess = (result.resultCode == Activity.RESULT_OK) &&
+                (lower.contains("status=success") || lower.contains("status=submitted") || lower.contains("success")) &&
+                !lower.contains("status=failure") &&
+                !lower.contains("status=failed")
 
         if (isSuccess) {
-            // 1. Permanently unlock Pro in SharedPreferences
+            // 1. Permanently Unlock Pro
             val prefs = getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
             prefs.edit().putBoolean(KEY_IS_PRO_UNLOCKED, true).apply()
             PreferenceManager.setProUnlocked(this, true)
@@ -78,19 +79,19 @@ class PaywallActivity : ComponentActivity() {
             // 2. Show Success Confirmation
             AlertDialog.Builder(this)
                 .setTitle("🎉 Payment Successful!")
-                .setMessage("₹399 payment received successfully. Memory Plus Lifetime Pro is now permanently unlocked on your device!")
+                .setMessage("₹399 payment receive ho gaya hai. Memory Plus Pro Lifetime unlock ho chuka hai!")
                 .setCancelable(false)
-                .setPositiveButton("Start Using App") { dialog, _ ->
+                .setPositiveButton("Start Using Pro") { dialog, _ ->
                     dialog.dismiss()
-                    val intent = Intent(this, MainActivity::class.java).apply {
+                    val mainIntent = Intent(this, MainActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     }
-                    startActivity(intent)
+                    startActivity(mainIntent)
                     finish()
                 }
                 .show()
         } else {
-            Toast.makeText(this, "Payment nahi hua ya cancel ho gaya. Pro locked hai.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Payment poora nahi hua ya cancel ho gaya. Pro locked hai.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -109,14 +110,21 @@ class PaywallActivity : ComponentActivity() {
     }
 
     /**
-     * One-Tap UPI Intent Launcher
+     * One-Tap UPI Launcher Logic
      */
     private fun launchUpiPaymentIntent() {
         try {
-            val uri = Uri.parse(
-                "upi://pay?pa=$UPI_PA&pn=" + Uri.encode(UPI_PN) + "&am=$UPI_AM&cu=$UPI_CU&tn=" + Uri.encode(UPI_TN)
-            )
-            val intent = Intent(Intent.ACTION_VIEW, uri)
+            val txnRef = "TXN" + System.currentTimeMillis()
+            val uriString = "upi://pay?" +
+                    "pa=$UPI_PA" +
+                    "&pn=" + Uri.encode(UPI_PN) +
+                    "&mc=" +
+                    "&tr=" + txnRef +
+                    "&am=$UPI_AM" +
+                    "&cu=$UPI_CU" +
+                    "&tn=" + Uri.encode(UPI_TN)
+
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriString))
             val chooser = Intent.createChooser(intent, "Pay ₹399 via UPI App")
 
             if (intent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
@@ -157,13 +165,13 @@ fun PaywallScreenContent(
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Top Banner
+            // Top Header Badge
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Color(0xFFEA580C)
             ) {
                 Text(
-                    text = "🔥 FREE TRIAL COMPLETED — UPGRADE TO PRO",
+                    text = "⚡ UPGRADE TO LIFETIME PRO",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
@@ -234,7 +242,7 @@ fun PaywallScreenContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "₹399 One-Time Lifetime",
+                        text = "₹399 One-Time Payment",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF10B981)
@@ -267,17 +275,17 @@ fun PaywallScreenContent(
                     PaywallFeatureRow(
                         icon = Icons.Default.Bolt,
                         tint = Color(0xFFF59E0B),
-                        text = "⚡ Unlimited Voice & Photo Reminders"
+                        text = "⚡ Unlimited Reminders"
                     )
                     PaywallFeatureRow(
                         icon = Icons.Default.Notifications,
                         tint = Color(0xFF38BDF8),
-                        text = "🔔 Lifetime Access (No Monthly Fees)"
+                        text = "🔔 Voice Alerts & Custom Sounds"
                     )
                     PaywallFeatureRow(
                         icon = Icons.Default.Security,
                         tint = Color(0xFF10B981),
-                        text = "🛡️ 100% Safe & Instant Unlock"
+                        text = "🛡️ 100% Ad-Free Lifetime Access"
                     )
                 }
             }
