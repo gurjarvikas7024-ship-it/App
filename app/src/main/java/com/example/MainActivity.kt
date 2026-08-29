@@ -35,12 +35,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.data.model.ReminderEntity
+import com.example.data.model.RepeatType
 import com.example.service.SmartVoiceParser
 import com.example.ui.components.VoiceInputBottomSheet
 import com.example.ui.paywall.PaywallActivity
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ReminderViewModel
+import com.memoryplus.app.HindiDateTimeParser
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -77,7 +79,7 @@ class MainActivity : ComponentActivity() {
                 if (!isPro && count >= 2) {
                     Toast.makeText(
                         this@MainActivity,
-                        "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                        "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                         Toast.LENGTH_LONG
                     ).show()
                     startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -104,29 +106,42 @@ class MainActivity : ComponentActivity() {
                     val spokenText = spokenTextList?.firstOrNull()?.trim()
 
                     if (!spokenText.isNullOrBlank()) {
-                        // Gatekeeper check before saving voice reminder
-                        if (!checkGatekeeperAndProceed()) {
+                        val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
+                        val isPro = prefs.getBoolean("is_pro_unlocked", false)
+                        val count = prefs.getInt("reminder_count", 0)
+
+                        if (!isPro && count >= 2) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
                             return@rememberLauncherForActivityResult
                         }
 
-                        val parsed = SmartVoiceParser.parse(spokenText, uiState.userName)
+                        // Parse with HindiDateTimeParser
+                        val parsed = HindiDateTimeParser.parseVoiceText(spokenText)
+
+                        if (!isPro) {
+                            prefs.edit().putInt("reminder_count", count + 1).apply()
+                        }
+
                         val reminder = ReminderEntity(
                             title = parsed.title,
                             description = spokenText,
-                            timeMillis = parsed.timeMillis,
-                            repeatType = parsed.repeatType,
-                            customVoiceScript = parsed.voiceScript,
+                            timeMillis = parsed.targetTimeMillis,
+                            repeatType = RepeatType.ONCE.name,
+                            customVoiceScript = parsed.title,
                             voicePreset = uiState.voicePreset
                         )
 
                         viewModel.addReminder(
                             reminder = reminder,
                             onSuccess = {
-                                val sdf = SimpleDateFormat("hh:mm a, dd MMM", Locale.ENGLISH)
-                                val dateStr = sdf.format(Date(parsed.timeMillis))
                                 Toast.makeText(
                                     context,
-                                    "🔔 Reminder Set: \"${parsed.title}\" for $dateStr",
+                                    "Set for: ${parsed.formattedDateText}\nTask: ${parsed.title}",
                                     Toast.LENGTH_LONG
                                 ).show()
                             },
@@ -193,7 +208,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && count >= 2) {
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -210,7 +225,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && count >= 2) {
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -227,7 +242,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && count >= 2) {
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -250,7 +265,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && count >= 2) {
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -281,7 +296,7 @@ class MainActivity : ComponentActivity() {
                                             onError = {
                                                 Toast.makeText(
                                                     context,
-                                                    "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                    "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                                 PaywallActivity.start(context)
@@ -295,7 +310,7 @@ class MainActivity : ComponentActivity() {
                                         if (!isPro && count >= 2) {
                                             Toast.makeText(
                                                 this@MainActivity,
-                                                "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                                 Toast.LENGTH_LONG
                                             ).show()
                                             startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -308,7 +323,7 @@ class MainActivity : ComponentActivity() {
                                             onError = {
                                                 Toast.makeText(
                                                     context,
-                                                    "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                                    "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                                 PaywallActivity.start(context)
@@ -335,7 +350,7 @@ class MainActivity : ComponentActivity() {
                                     if (!isPro && count >= 2) {
                                         Toast.makeText(
                                             this@MainActivity,
-                                            "2 Free Reminders Limit Reached! Unlock Pro for unlimited access.",
+                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
@@ -402,7 +417,7 @@ class MainActivity : ComponentActivity() {
                             },
                             text = {
                                 Text(
-                                    text = "You have reached your 2 free reminders limit. Upgrade to Lifetime Pro for ₹399 to unlock unlimited voice & photo reminders forever!",
+                                    text = "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = SlateMutedText
                                 )

@@ -90,6 +90,9 @@ secrets {
 // This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
+  implementation(libs.androidx.appcompat)
+  implementation(libs.material)
+  implementation(libs.androidx.cardview)
   // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)

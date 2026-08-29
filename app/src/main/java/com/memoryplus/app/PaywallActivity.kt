@@ -1,4 +1,4 @@
-package com.example.ui.paywall
+package com.memoryplus.app
 
 import android.content.ClipData
 import android.content.ClipboardManager

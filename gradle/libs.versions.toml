@@ -1,5 +1,8 @@
 [versions]
 agp = "8.8.0"
+appcompat = "1.7.0"
+material = "1.12.0"
+cardview = "1.0.0"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -46,6 +49,9 @@ zxingAndroidEmbedded = "4.3.0"
 
 
 [libraries]
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
 zxing-android-embedded = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
 razorpay = { group = "com.razorpay", name = "checkout", version.ref = "razorpay" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
