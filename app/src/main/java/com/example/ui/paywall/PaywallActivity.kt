@@ -43,13 +43,19 @@ import java.util.Locale
 class PaywallActivity : ComponentActivity() {
 
     companion object {
-        const val UPI_PA = "7024991656@apl"
-        const val UPI_PN = "Uma Bai Gurjar"
+        const val UPI_PA = "Umagurjar1@bpunity"
+        const val UPI_PN = "Memory Plus"
         const val UPI_AM = "399"
         const val UPI_CU = "INR"
         const val UPI_TN = "Memory Plus Pro Lifetime"
 
-        val UPI_URI_STRING: String = "upi://pay?pa=$UPI_PA&pn=Uma%20Bai%20Gurjar&am=$UPI_AM&cu=$UPI_CU&tn=Memory%20Plus%20Pro%20Lifetime"
+        fun getUpiUriString(): String {
+            return "upi://pay?pa=$UPI_PA" +
+                    "&pn=" + Uri.encode(UPI_PN) +
+                    "&am=$UPI_AM" +
+                    "&cu=$UPI_CU" +
+                    "&tn=" + Uri.encode(UPI_TN)
+        }
 
         fun start(context: Context) {
             val intent = Intent(context, PaywallActivity::class.java).apply {
@@ -115,19 +121,25 @@ class PaywallActivity : ComponentActivity() {
      */
     private fun launchUpiPaymentIntent() {
         try {
-            val uri = Uri.parse(UPI_URI_STRING)
-            val upiIntent = Intent(Intent.ACTION_VIEW, uri)
-            val chooser = Intent.createChooser(upiIntent, "Pay ₹399 via UPI App")
+            val uriString = "upi://pay?pa=$UPI_PA" +
+                    "&pn=" + Uri.encode(UPI_PN) +
+                    "&am=$UPI_AM" +
+                    "&cu=$UPI_CU" +
+                    "&tn=" + Uri.encode(UPI_TN)
 
-            if (upiIntent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
+            val upiUri = Uri.parse(uriString)
+            val intent = Intent(Intent.ACTION_VIEW, upiUri)
+            val chooser = Intent.createChooser(intent, "Pay ₹399 via UPI")
+
+            if (intent.resolveActivity(packageManager) != null || chooser.resolveActivity(packageManager) != null) {
                 upiPaymentLauncher.launch(chooser)
             } else {
                 try {
-                    upiPaymentLauncher.launch(upiIntent)
+                    upiPaymentLauncher.launch(intent)
                 } catch (e: Exception) {
                     Toast.makeText(
                         this,
-                        "No supported UPI App (PhonePe, GPay, Paytm) found on device.",
+                        "No supported UPI App (PhonePe, GPay, Paytm, BHIM) found on device.",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -163,7 +175,7 @@ class PaywallActivity : ComponentActivity() {
         } else {
             Toast.makeText(
                 this,
-                "Payment was not completed or failed. Pro features remain locked.",
+                "Payment failed or cancelled. Pro remains locked.",
                 Toast.LENGTH_SHORT
             ).show()
         }
