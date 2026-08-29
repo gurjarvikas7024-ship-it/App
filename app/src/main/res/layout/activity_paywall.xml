@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -10,27 +9,27 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp"
+        android:padding="24dp"
         android:gravity="center_horizontal">
 
-        <!-- Top Badge -->
+        <!-- Top Banner / Badge -->
         <LinearLayout
             android:id="@+id/ll_offer_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:background="#EA580C"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:gravity="center">
 
             <TextView
                 android:id="@+id/tv_offer_badge_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔥 2 FREE REMINDERS USED — UPGRADE TO PRO"
+                android:text="🔥 FREE TRIAL COMPLETED — UPGRADE TO PRO"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -39,9 +38,9 @@
 
         <ImageView
             android:id="@+id/iv_lock_icon"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="14dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="20dp"
             android:src="@android:drawable/ic_lock_idle_alarm"
             android:tint="#F59E0B"
             android:contentDescription="Upgrade Required" />
@@ -50,10 +49,10 @@
             android:id="@+id/tv_paywall_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="14dp"
             android:text="Memory Plus Pro"
             android:textColor="#FFFFFF"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:textAlignment="center" />
 
@@ -61,165 +60,100 @@
             android:id="@+id/tv_paywall_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Scan QR or tap below to unlock unlimited voice reminders, alarms &amp; edits forever."
+            android:layout_marginTop="6dp"
+            android:text="Unlock unlimited natural voice reminders, custom alarms and edits forever."
             android:textColor="#94A3B8"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textAlignment="center"
-            android:lineSpacingExtra="2dp" />
+            android:lineSpacingExtra="3dp" />
 
-        <!-- Dynamic QR Code Card -->
+        <!-- Price Badge Card -->
         <LinearLayout
-            android:id="@+id/ll_qr_card"
+            android:id="@+id/ll_pricing_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             android:background="#1E293B"
             android:orientation="vertical"
-            android:padding="16dp"
+            android:padding="18dp"
             android:gravity="center_horizontal">
 
-            <!-- Price Highlight -->
             <TextView
                 android:id="@+id/tv_price_tag"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="₹399 One-Time Lifetime"
                 android:textColor="#10B981"
-                android:textSize="20sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Scan with any UPI App (PhonePe / GPay / Paytm)"
-                android:textColor="#94A3B8"
-                android:textSize="12sp" />
-
-            <!-- QR Code Frame (220dp x 220dp with white background padding) -->
-            <LinearLayout
-                android:layout_width="220dp"
-                android:layout_height="220dp"
-                android:layout_marginTop="12dp"
-                android:background="#FFFFFF"
-                android:padding="10dp"
-                android:gravity="center">
-
-                <ImageView
-                    android:id="@+id/iv_dynamic_qr"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="UPI QR Code" />
-            </LinearLayout>
-
-            <!-- UPI ID with Copy Action -->
-            <LinearLayout
-                android:id="@+id/ll_copy_upi"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackground"
-                android:padding="6dp">
-
-                <TextView
-                    android:id="@+id/tv_upi_id"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="UPI ID: 7024991656@apl"
-                    android:textColor="#38BDF8"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_marginStart="6dp"
-                    android:src="@android:drawable/ic_menu_edit"
-                    android:tint="#38BDF8"
-                    android:contentDescription="Copy UPI ID" />
-            </LinearLayout>
+                android:layout_marginTop="4dp"
+                android:text="Pay Once • Use Forever on this Device"
+                android:textColor="#F59E0B"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Feature List Card -->
+        <!-- Features List Card -->
         <LinearLayout
             android:id="@+id/ll_features_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:background="#1E293B"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Unlimited Alarms, Edits &amp; Voice Notes"
+                android:text="⚡ Unlimited Voice &amp; Photo Reminders"
                 android:textColor="#E2E8F0"
-                android:textSize="13.5sp"
-                android:layout_marginBottom="6dp" />
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ 1-Tap AI Natural Voice Input"
+                android:text="🔔 Lifetime Access (No Monthly Fees)"
                 android:textColor="#E2E8F0"
-                android:textSize="13.5sp"
-                android:layout_marginBottom="6dp" />
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Battery-Optimized 0s Delay Alarms"
+                android:text="🛡️ 100% Safe &amp; Instant Unlock"
                 android:textColor="#E2E8F0"
-                android:textSize="13.5sp"
-                android:layout_marginBottom="6dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ Lifetime Access (100% Instant Auto-Unlock)"
-                android:textColor="#E2E8F0"
-                android:textSize="13.5sp" />
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Primary Emerald Green Button: One-Tap UPI Launch -->
+        <!-- Big Emerald Green CTA Button: 1-Tap UPI Launcher -->
         <Button
             android:id="@+id/btn_pay_upi"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_height="58dp"
+            android:layout_marginTop="24dp"
             android:backgroundTint="#059669"
-            android:text="Pay ₹399 via UPI (PhonePe / GPay / Paytm)"
+            android:text="⚡ Pay ₹399 &amp; Unlock Lifetime Pro"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
-        <!-- Secondary Text Button: Manual Key Fallback -->
-        <Button
-            android:id="@+id/btn_enter_secret_key"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginTop="6dp"
-            android:text="Already Paid? Enter Secret Key"
-            android:textColor="#38BDF8"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <!-- Security / Verification Subtext -->
+        <!-- Security / Subtext -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Direct UPI Instant Verification • Lifetime Access"
+            android:layout_marginTop="14dp"
+            android:text="Supports PhonePe, Google Pay, Paytm &amp; all UPI Apps"
             android:textColor="#64748B"
-            android:textSize="11sp"
+            android:textSize="12sp"
             android:textAlignment="center" />
 
     </LinearLayout>
