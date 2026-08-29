@@ -36,6 +36,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.data.model.ReminderEntity
 import com.example.data.model.RepeatType
+import com.example.data.preferences.PreferenceManager
 import com.example.service.SmartVoiceParser
 import com.example.ui.components.VoiceInputBottomSheet
 import com.example.ui.paywall.PaywallActivity
@@ -69,22 +70,14 @@ class MainActivity : ComponentActivity() {
 
             // 1. Strict 2-Reminder Limit Gatekeeper
             fun checkGatekeeperAndProceed(): Boolean {
-                val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                val count = prefs.getInt("reminder_count", 0)
-
-                if (!isPro && count >= 2) {
+                if (!PreferenceManager.canCreateReminder(this@MainActivity)) {
                     Toast.makeText(
                         this@MainActivity,
                         "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
                         Toast.LENGTH_LONG
                     ).show()
-                    startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                    PaywallActivity.start(this@MainActivity)
                     return false // Block reminder creation
-                }
-
-                if (!isPro) {
-                    prefs.edit().putInt("reminder_count", count + 1).apply()
                 }
                 return true
             }
@@ -103,26 +96,12 @@ class MainActivity : ComponentActivity() {
                     val spokenText = spokenTextList?.firstOrNull()?.trim()
 
                     if (!spokenText.isNullOrBlank()) {
-                        val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                        val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                        val count = prefs.getInt("reminder_count", 0)
-
-                        if (!isPro && count >= 2) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                        if (!checkGatekeeperAndProceed()) {
                             return@rememberLauncherForActivityResult
                         }
 
                         // Parse with HindiDateTimeParser
                         val parsed = HindiDateTimeParser.parseVoiceText(spokenText)
-
-                        if (!isPro) {
-                            prefs.edit().putInt("reminder_count", count + 1).apply()
-                        }
 
                         val reminder = ReminderEntity(
                             title = parsed.title,
@@ -198,54 +177,21 @@ class MainActivity : ComponentActivity() {
                                 onSelectTab = { viewModel.selectTab(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 on1TapMic = {
-                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                    val count = prefs.getInt("reminder_count", 0)
-
-                                    if (!isPro && count >= 2) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                                    if (!checkGatekeeperAndProceed()) {
                                         return@HomeScreen
                                     }
-
                                     startNativeSpeechRecognizer(speechRecognizerLauncher)
                                 },
                                 onOpenVoiceDialog = {
-                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                    val count = prefs.getInt("reminder_count", 0)
-
-                                    if (!isPro && count >= 2) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                                    if (!checkGatekeeperAndProceed()) {
                                         return@HomeScreen
                                     }
-
                                     showVoiceModal = true
                                 },
                                 onOpenAddReminder = {
-                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                    val count = prefs.getInt("reminder_count", 0)
-
-                                    if (!isPro && count >= 2) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                                    if (!checkGatekeeperAndProceed()) {
                                         return@HomeScreen
                                     }
-
                                     editingReminder = null
                                     navController.navigate("add_edit")
                                 },
@@ -255,20 +201,9 @@ class MainActivity : ComponentActivity() {
                                 onToggleCompleted = { viewModel.markCompleted(it) },
                                 onDeleteReminder = { viewModel.deleteReminder(it) },
                                 onEditReminder = { reminder ->
-                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                    val count = prefs.getInt("reminder_count", 0)
-
-                                    if (!isPro && count >= 2) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
+                                    if (!checkGatekeeperAndProceed()) {
                                         return@HomeScreen
                                     }
-
                                     editingReminder = reminder
                                     navController.navigate("add_edit")
                                 },
@@ -300,20 +235,6 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     } else {
-                                        val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                        val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                        val count = prefs.getInt("reminder_count", 0)
-
-                                        if (!isPro && count >= 2) {
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
-                                            return@AddEditReminderScreen
-                                        }
-
                                         viewModel.updateReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },

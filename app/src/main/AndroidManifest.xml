@@ -53,6 +53,12 @@
 
         <!-- Pro Upgrade & Paywall Activity -->
         <activity
+            android:name=".ui.paywall.PaywallActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.MyApplication" />
+
+        <activity
             android:name="com.memoryplus.app.PaywallActivity"
             android:exported="false"
             android:launchMode="singleTop"
