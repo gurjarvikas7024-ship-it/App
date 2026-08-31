@@ -42,9 +42,32 @@ open class AlarmActivity : ComponentActivity() {
 
         enforceScreenOvertake()
 
-        val reminderId = intent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L)
-        val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE) ?: "Reminder Alert!"
-        val description = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT) ?: ""
+        val reminderId = intent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L).let {
+            if (it == -1L) intent.getLongExtra(AlarmService.EXTRA_REMINDER_ID, -1L) else it
+        }
+        val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE)
+            ?: intent.getStringExtra(AlarmService.EXTRA_REMINDER_TITLE)
+            ?: "Reminder Alert!"
+        val description = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT)
+            ?: intent.getStringExtra(AlarmService.EXTRA_REMINDER_SCRIPT)
+            ?: ""
+
+        // Ensure AlarmService is running and playing sound continuously
+        try {
+            val startServiceIntent = Intent(applicationContext, AlarmService::class.java).apply {
+                action = AlarmService.ACTION_START_ALARM
+                putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
+                putExtra(AlarmService.EXTRA_REMINDER_TITLE, reminderTitle)
+                putExtra(AlarmService.EXTRA_REMINDER_SCRIPT, description)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                androidx.core.content.ContextCompat.startForegroundService(applicationContext, startServiceIntent)
+            } else {
+                startService(startServiceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         setContent {
             MyApplicationTheme {

@@ -18,7 +18,7 @@ import com.example.ui.alarm.FullScreenAlarmActivity
 
 object NotificationHelper {
 
-    const val CHANNEL_ID = "memory_plus_alarms_channel"
+    const val CHANNEL_ID = "memory_plus_priority_ringtone_v3"
     const val CHANNEL_NAME = "High Priority Reminder Alarms"
     const val NOTIFICATION_ID_BASE = 2000
 
@@ -26,13 +26,12 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
-            val alarmSound: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val customRingtoneUri: Uri = Uri.parse("android.resource://${context.packageName}/${com.example.R.raw.memory_plus_ringtone}")
 
             val audioAttributes = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
+                .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
                 .build()
 
             val channel = NotificationChannel(
@@ -44,7 +43,7 @@ object NotificationHelper {
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
-                setSound(alarmSound, audioAttributes)
+                setSound(customRingtoneUri, audioAttributes)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setBypassDnd(true)
             }
@@ -116,9 +115,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val alarmSound: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val customRingtoneUri: Uri = Uri.parse("android.resource://${context.packageName}/${com.example.R.raw.memory_plus_ringtone}")
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -130,7 +127,7 @@ object NotificationHelper {
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setAutoCancel(true)
             .setOngoing(true)
-            .setSound(alarmSound, AudioManager.STREAM_ALARM)
+            .setSound(customRingtoneUri, AudioManager.STREAM_ALARM)
             .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Mark as Done", donePendingIntent)

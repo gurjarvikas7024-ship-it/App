@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 class AlarmService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "memory_plus_alarm_channel_v2"
+        const val CHANNEL_ID = "memory_plus_ringtone_channel_v3"
         const val NOTIFICATION_ID = 9991
         const val ACTION_START_ALARM = "com.example.service.ACTION_START_ALARM"
         const val ACTION_DISMISS_ALARM = "com.example.service.ACTION_DISMISS_ALARM"
@@ -171,26 +171,96 @@ class AlarmService : Service() {
         try {
             stopAlarmMediaAndVibration()
 
-            // Initialize MediaPlayer with ALARM usage
-            val alarmUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                ?: Settings.System.DEFAULT_ALARM_ALERT_URI
+            // 1. Maximize Alarm Stream Volume & Request Audio Focus
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            audioManager?.let { am ->
+                try {
+                    val maxAlarmVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                    am.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, 0)
+                } catch (e: Exception) {
+                    Log.e("AlarmService", "Failed to set stream volume", e)
+                }
 
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(applicationContext, alarmUri)
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                isLooping = true
-                prepare()
-                start()
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val audioFocusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                            .setAudioAttributes(
+                                AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_ALARM)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                    .build()
+                            )
+                            .build()
+                        am.requestAudioFocus(audioFocusRequest)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        am.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    }
+                } catch (e: Exception) {
+                    Log.e("AlarmService", "Failed to request audio focus", e)
+                }
             }
 
-            // Start continuous vibration pattern
+            // 2. Play Continuous Custom Ringtone (Looping until dismissed/snoozed)
+            try {
+                mediaPlayer = MediaPlayer.create(applicationContext, com.example.R.raw.memory_plus_ringtone)?.apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                            .build()
+                    )
+                    isLooping = true
+                    setVolume(1.0f, 1.0f)
+                    start()
+                }
+            } catch (e: Exception) {
+                Log.e("AlarmService", "Failed to create MediaPlayer from raw resource", e)
+            }
+
+            // Fallback to custom URI or system alert if needed
+            if (mediaPlayer == null) {
+                try {
+                    val ringtoneUri = Uri.parse("android.resource://$packageName/${com.example.R.raw.memory_plus_ringtone}")
+                    mediaPlayer = MediaPlayer().apply {
+                        setDataSource(applicationContext, ringtoneUri)
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                                .build()
+                        )
+                        isLooping = true
+                        setVolume(1.0f, 1.0f)
+                        prepare()
+                        start()
+                    }
+                } catch (e: Exception) {
+                    Log.e("AlarmService", "Fallback custom URI failed, trying system alarm URI", e)
+                    val alarmUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                        ?: Settings.System.DEFAULT_ALARM_ALERT_URI
+
+                    mediaPlayer = MediaPlayer().apply {
+                        setDataSource(applicationContext, alarmUri)
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                        isLooping = true
+                        setVolume(1.0f, 1.0f)
+                        prepare()
+                        start()
+                    }
+                }
+            }
+
+            // 3. Start continuous vibration pattern
             vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
             val pattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -324,8 +394,7 @@ class AlarmService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val alarmSoundUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val customSoundUri = Uri.parse("android.resource://$packageName/${com.example.R.raw.memory_plus_ringtone}")
 
             val bigTextStyle = NotificationCompat.BigTextStyle()
                 .setBigContentTitle("🔔 MEMORY PLUS REMINDER")
@@ -342,7 +411,7 @@ class AlarmService : Service() {
                 .setContentIntent(fullScreenPendingIntent)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                .setSound(alarmSoundUri, AudioManager.STREAM_ALARM)
+                .setSound(customSoundUri, AudioManager.STREAM_ALARM)
                 .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Mark as Done", dismissPendingIntent)
@@ -375,12 +444,12 @@ class AlarmService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                val alarmSoundUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val customSoundUri = Uri.parse("android.resource://$packageName/${com.example.R.raw.memory_plus_ringtone}")
 
                 val audioAttributes = AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
                     .build()
 
                 val channel = NotificationChannel(
@@ -392,7 +461,7 @@ class AlarmService : Service() {
                     enableVibration(true)
                     vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000)
                     enableLights(true)
-                    setSound(alarmSoundUri, audioAttributes)
+                    setSound(customSoundUri, audioAttributes)
                     setBypassDnd(true)
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 }
