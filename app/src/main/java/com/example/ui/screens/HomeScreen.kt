@@ -86,30 +86,20 @@ fun HomeScreen(
                             text = if (uiState.userName.isNotBlank() && uiState.userName != "User") "Hello, ${uiState.userName}!" else "Memory Plus",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = DeepSlateNavy
+                            color = DeepSlateNavy,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Smart Alarms & 100% Free Reminders",
+                            text = "Smart Alarms & Reminders",
                             style = MaterialTheme.typography.labelSmall,
-                            color = SlateMutedText
+                            color = SlateMutedText,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = onShareApp) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share App",
-                            tint = OceanBlueAccent
-                        )
-                    }
-                    IconButton(onClick = onOpenAddReminder) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Reminder",
-                            tint = OceanBlueAccent
-                        )
-                    }
                     IconButton(onClick = onOpenCalendar) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
@@ -154,69 +144,6 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
         ) {
-
-            // 100% Free & Easy Share Banner Card
-            item {
-                Card(
-                    onClick = onShareApp,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFDBEAFE)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Share,
-                                    contentDescription = "Share App",
-                                    tint = OceanBlueAccent,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "100% Free Unlimited Reminders",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF1E3A8A)
-                                )
-                                Text(
-                                    text = "Dosto aur family ke sath share karein",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF2563EB)
-                                )
-                            }
-                        }
-                        Button(
-                            onClick = onShareApp,
-                            colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Share", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
-                    }
-                }
-            }
 
             // Primary "Set Reminder" Hero Card in Sky Blue Container
             item {

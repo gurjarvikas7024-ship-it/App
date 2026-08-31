@@ -2,6 +2,8 @@ package com.example
 
 import android.Manifest
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -70,14 +72,24 @@ class MainActivity : ComponentActivity() {
 
             // Easy App Share intent
             fun shareApp() {
-                val shareText = "Try Memory Plus - Smart 100% Free Full-Screen Alarm & Reminder App! ⏰ Set unlimited voice & task reminders easily: https://ais-pre-mvsv77bjsyvy3eq4bsm3vs-505949836468.asia-east1.run.app"
-                val sendIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, shareText)
-                    type = "text/plain"
+                val appUrl = "https://ais-pre-mvsv77bjsyvy3eq4bsm3vs-505949836468.asia-east1.run.app"
+                val shareText = "Memory Plus - 100% Free Smart Full-Screen Alarms & Voice Reminder App ⏰\n\nAb koi bhi task ya dawaai na bhoolein! Download/Open app:\n$appUrl"
+                try {
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_SUBJECT, "Memory Plus - Smart Reminders App")
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, "Share Memory Plus via")
+                    shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    this@MainActivity.startActivity(shareIntent)
+                } catch (e: Exception) {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Memory Plus Link", appUrl)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this@MainActivity, "App link copied to clipboard!", Toast.LENGTH_SHORT).show()
                 }
-                val shareIntent = Intent.createChooser(sendIntent, "Share Memory Plus App")
-                context.startActivity(shareIntent)
             }
 
             // Notification permission request for Android 13+
