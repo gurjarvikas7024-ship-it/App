@@ -37,46 +37,20 @@ class ReminderRepository(private val reminderDao: ReminderDao) {
         reminderDao.insertReminder(reminder)
 
     /**
-     * Strict verification save method: blocks saving if free action limit reached
+     * Save reminder method: unlimited free access
      */
     suspend fun saveReminder(context: Context, reminder: ReminderEntity): Long {
-        val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
-        val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
-        val actionCount = PreferenceManager.getLifetimeActionsCount(context)
-
-        if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.", Toast.LENGTH_SHORT).show()
-            }
-            throw IllegalStateException("Free trial limit reached! Upgrade to Pro.")
-        }
-
         val id = reminderDao.insertReminder(reminder)
-        if (!isPro) {
-            PreferenceManager.incrementLifetimeActions(context)
-        }
+        PreferenceManager.incrementLifetimeActions(context)
         return id
     }
 
     /**
-     * Strict verification update method: blocks updating if free action limit reached
+     * Update reminder method: unlimited free access
      */
     suspend fun updateReminderWithLimit(context: Context, reminder: ReminderEntity) {
-        val prefs = context.getSharedPreferences(PreferenceManager.PREFS_NAME, Context.MODE_PRIVATE)
-        val isPro = prefs.getBoolean(PreferenceManager.KEY_IS_PRO_UNLOCKED, false)
-        val actionCount = PreferenceManager.getLifetimeActionsCount(context)
-
-        if (!isPro && actionCount >= PreferenceManager.MAX_FREE_ACTIONS) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Free trial limit reached (2/2). Upgrade to Pro to edit or create unlimited reminders.", Toast.LENGTH_SHORT).show()
-            }
-            throw IllegalStateException("Free trial limit reached! Upgrade to Pro.")
-        }
-
         reminderDao.updateReminder(reminder)
-        if (!isPro) {
-            PreferenceManager.incrementLifetimeActions(context)
-        }
+        PreferenceManager.incrementLifetimeActions(context)
     }
 
     suspend fun updateReminder(reminder: ReminderEntity) =

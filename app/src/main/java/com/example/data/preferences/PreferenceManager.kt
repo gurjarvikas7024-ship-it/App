@@ -61,35 +61,27 @@ object PreferenceManager {
 
     @JvmStatic
     fun isProUnlocked(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_IS_PRO_UNLOCKED, false)
+        return true
     }
 
     @JvmStatic
     fun setProUnlocked(context: Context, isUnlocked: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_IS_PRO_UNLOCKED, isUnlocked).apply()
+        getPrefs(context).edit().putBoolean(KEY_IS_PRO_UNLOCKED, true).apply()
     }
 
     @JvmStatic
     fun canPerformAction(context: Context): Boolean {
-        val prefs = getPrefs(context)
-        val isPro = prefs.getBoolean(KEY_IS_PRO_UNLOCKED, false)
-        if (isPro) {
-            return true
-        }
-        val actionCount = getLifetimeActionsCount(context)
-        return actionCount < MAX_FREE_ACTIONS
+        return true
     }
 
     @JvmStatic
     fun canCreateReminder(context: Context): Boolean {
-        return canPerformAction(context)
+        return true
     }
 
     @JvmStatic
     fun getRemainingFreeReminders(context: Context): Int {
-        if (isProUnlocked(context)) return Int.MAX_VALUE
-        val count = getLifetimeActionsCount(context)
-        return (MAX_FREE_ACTIONS - count).coerceAtLeast(0)
+        return Int.MAX_VALUE
     }
 
     @JvmStatic

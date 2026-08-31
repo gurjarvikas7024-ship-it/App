@@ -33,7 +33,8 @@ fun SettingsProfileScreen(
     onSaveName: (String) -> Unit,
     onSaveVoiceSettings: (String, String, String) -> Unit,
     onToggleDarkMode: (Boolean?) -> Unit,
-    onOpenPaywall: () -> Unit
+    onOpenPaywall: () -> Unit = {},
+    onShareApp: () -> Unit = {}
 ) {
     var nameInput by remember(uiState.userName) { mutableStateOf(uiState.userName) }
     val context = LocalContext.current
@@ -274,10 +275,11 @@ fun SettingsProfileScreen(
                 }
             }
 
-            // Subscription Status Card
+            // App Version & Share Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -286,21 +288,27 @@ fun SettingsProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Account Status", fontWeight = FontWeight.Bold)
+                            Text("Memory Plus - 100% Free", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                if (uiState.isPremium) "Memory Plus Premium Member" else "Free Plan (Active Reminders Enabled)",
+                                "Unlimited Alarms • No Payment • No Keys Needed",
                                 fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        if (!uiState.isPremium) {
-                            Button(
-                                onClick = onOpenPaywall,
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text("Upgrade")
-                            }
-                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = onShareApp,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = androidx.compose.ui.graphics.Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Share App with Friends & Family", fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
                     }
                 }
             }

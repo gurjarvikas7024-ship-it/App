@@ -39,21 +39,11 @@ class MainActivity : AppCompatActivity() {
 
         val fabAdd = findViewById<FloatingActionButton>(R.id.fabAddReminder)
         fabAdd.setOnClickListener {
-            checkLimitAndOpenCreateDialog()
+            showCreateReminderDialog()
         }
     }
 
     private fun checkLimitAndOpenCreateDialog() {
-        val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-        val isPro = prefs.getBoolean("is_pro_unlocked", false)
-        val count = prefs.getInt("reminder_count", 0)
-
-        if (!isPro && count >= 2) {
-            Toast.makeText(this, "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.", Toast.LENGTH_LONG).show()
-            startActivity(Intent(this, PaywallActivity::class.java))
-            return
-        }
-
         showCreateReminderDialog()
     }
 

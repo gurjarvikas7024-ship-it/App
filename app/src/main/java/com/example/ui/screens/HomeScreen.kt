@@ -47,7 +47,8 @@ fun HomeScreen(
     onOpenAddReminder: () -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenPaywall: () -> Unit,
+    onOpenPaywall: () -> Unit = {},
+    onShareApp: () -> Unit = {},
     onToggleCompleted: (Long) -> Unit,
     onDeleteReminder: (Long) -> Unit,
     onEditReminder: (ReminderEntity) -> Unit,
@@ -88,13 +89,20 @@ fun HomeScreen(
                             color = DeepSlateNavy
                         )
                         Text(
-                            text = "Smart Alarms & Task Reminders",
+                            text = "Smart Alarms & 100% Free Reminders",
                             style = MaterialTheme.typography.labelSmall,
                             color = SlateMutedText
                         )
                     }
                 },
                 actions = {
+                    IconButton(onClick = onShareApp) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share App",
+                            tint = OceanBlueAccent
+                        )
+                    }
                     IconButton(onClick = onOpenAddReminder) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -147,94 +155,64 @@ fun HomeScreen(
             contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
         ) {
 
-            // Trial / Pro Status Banner
+            // 100% Free & Easy Share Banner Card
             item {
-                if (uiState.isProUnlocked || uiState.isPremium) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFECFDF5)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0))
+                Card(
+                    onClick = onShareApp,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFDBEAFE)),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF059669),
-                                    modifier = Modifier.size(22.dp)
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Share App",
+                                    tint = OceanBlueAccent,
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "⭐ Memory Plus Pro Activated",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF065F46)
-                                    )
-                                    Text(
-                                        text = "Unlimited Alarms • AI Voice • Battery Exact",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF047857)
-                                    )
-                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "100% Free Unlimited Reminders",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF1E3A8A)
+                                )
+                                Text(
+                                    text = "Dosto aur family ke sath share karein",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF2563EB)
+                                )
                             }
                         }
-                    }
-                } else {
-                    Card(
-                        onClick = onOpenPaywall,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Button(
+                            onClick = onShareApp,
+                            colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Free Trial: ${uiState.remainingFreeCount} of 2 reminders left",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF92400E)
-                                    )
-                                    Text(
-                                        text = if (uiState.remainingFreeCount > 0) "Create up to 2 reminders free" else "Limit reached! Upgrade to unlock unlimited",
-                                        fontSize = 11.sp,
-                                        color = Color(0xFFB45309)
-                                    )
-                                }
-                            }
-                            Button(
-                                onClick = onOpenPaywall,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text("Upgrade", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Share", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }

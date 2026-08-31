@@ -68,18 +68,16 @@ class MainActivity : ComponentActivity() {
             var showVoiceModal by remember { mutableStateOf(false) }
             var editingReminder by remember { mutableStateOf<ReminderEntity?>(null) }
 
-            // 1. Strict 2-Reminder Limit Gatekeeper
-            fun checkGatekeeperAndProceed(): Boolean {
-                if (!PreferenceManager.canCreateReminder(this@MainActivity)) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    PaywallActivity.start(this@MainActivity)
-                    return false // Block reminder creation
+            // Easy App Share intent
+            fun shareApp() {
+                val shareText = "Try Memory Plus - Smart 100% Free Full-Screen Alarm & Reminder App! ⏰ Set unlimited voice & task reminders easily: https://ais-pre-mvsv77bjsyvy3eq4bsm3vs-505949836468.asia-east1.run.app"
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
                 }
-                return true
+                val shareIntent = Intent.createChooser(sendIntent, "Share Memory Plus App")
+                context.startActivity(shareIntent)
             }
 
             // Notification permission request for Android 13+
@@ -96,10 +94,6 @@ class MainActivity : ComponentActivity() {
                     val spokenText = spokenTextList?.firstOrNull()?.trim()
 
                     if (!spokenText.isNullOrBlank()) {
-                        if (!checkGatekeeperAndProceed()) {
-                            return@rememberLauncherForActivityResult
-                        }
-
                         // Parse with HindiDateTimeParser
                         val parsed = HindiDateTimeParser.parseVoiceText(spokenText)
 
@@ -121,8 +115,8 @@ class MainActivity : ComponentActivity() {
                                     Toast.LENGTH_LONG
                                 ).show()
                             },
-                            onError = {
-                                PaywallActivity.start(context)
+                            onError = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                             }
                         )
                     } else {
@@ -177,33 +171,21 @@ class MainActivity : ComponentActivity() {
                                 onSelectTab = { viewModel.selectTab(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 on1TapMic = {
-                                    if (!checkGatekeeperAndProceed()) {
-                                        return@HomeScreen
-                                    }
                                     startNativeSpeechRecognizer(speechRecognizerLauncher)
                                 },
                                 onOpenVoiceDialog = {
-                                    if (!checkGatekeeperAndProceed()) {
-                                        return@HomeScreen
-                                    }
                                     showVoiceModal = true
                                 },
                                 onOpenAddReminder = {
-                                    if (!checkGatekeeperAndProceed()) {
-                                        return@HomeScreen
-                                    }
                                     editingReminder = null
                                     navController.navigate("add_edit")
                                 },
                                 onOpenCalendar = { navController.navigate("calendar") },
                                 onOpenSettings = { navController.navigate("settings") },
-                                onOpenPaywall = { PaywallActivity.start(context) },
+                                onShareApp = { shareApp() },
                                 onToggleCompleted = { viewModel.markCompleted(it) },
                                 onDeleteReminder = { viewModel.deleteReminder(it) },
                                 onEditReminder = { reminder ->
-                                    if (!checkGatekeeperAndProceed()) {
-                                        return@HomeScreen
-                                    }
                                     editingReminder = reminder
                                     navController.navigate("add_edit")
                                 },
@@ -218,33 +200,19 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onSave = { reminder ->
                                     if (editingReminder == null) {
-                                        if (!checkGatekeeperAndProceed()) {
-                                            return@AddEditReminderScreen
-                                        }
-
                                         viewModel.addReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
-                                            onError = {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                                PaywallActivity.start(context)
+                                            onError = { msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                             }
                                         )
                                     } else {
                                         viewModel.updateReminder(
                                             reminder = reminder,
                                             onSuccess = { navController.popBackStack() },
-                                            onError = {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                                PaywallActivity.start(context)
+                                            onError = { msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                             }
                                         )
                                     }
@@ -261,20 +229,6 @@ class MainActivity : ComponentActivity() {
                                 onToggleCompleted = { viewModel.markCompleted(it) },
                                 onDeleteReminder = { viewModel.deleteReminder(it) },
                                 onEditReminder = { reminder ->
-                                    val prefs = getSharedPreferences("MemoryPlusPrefs", Context.MODE_PRIVATE)
-                                    val isPro = prefs.getBoolean("is_pro_unlocked", false)
-                                    val count = prefs.getInt("reminder_count", 0)
-
-                                    if (!isPro && count >= 2) {
-                                        Toast.makeText(
-                                            this@MainActivity,
-                                            "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
-                                        return@CalendarScreen
-                                    }
-
                                     editingReminder = reminder
                                     navController.navigate("add_edit")
                                 },
@@ -289,7 +243,7 @@ class MainActivity : ComponentActivity() {
                                 onSaveName = { viewModel.saveUserName(it) },
                                 onSaveVoiceSettings = { lang, voice, preset -> viewModel.setVoiceSettings(lang, voice, preset) },
                                 onToggleDarkMode = { viewModel.setDarkMode(it) },
-                                onOpenPaywall = { PaywallActivity.start(context) }
+                                onShareApp = { shareApp() }
                             )
                         }
                     }
@@ -302,65 +256,17 @@ class MainActivity : ComponentActivity() {
                                 viewModel.parseVoiceReminder(prompt, onDone)
                             },
                             onSaveReminder = { reminder ->
-                                if (!checkGatekeeperAndProceed()) {
-                                    showVoiceModal = false
-                                    return@VoiceInputBottomSheet
-                                }
-
                                 viewModel.addReminder(
                                     reminder = reminder,
                                     onSuccess = {
                                         showVoiceModal = false
                                         Toast.makeText(context, "Reminder saved!", Toast.LENGTH_SHORT).show()
                                     },
-                                    onError = {
-                                        showVoiceModal = false
-                                        PaywallActivity.start(context)
+                                    onError = { msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }
-                        )
-                    }
-
-                    if (showPaywallLimitDialog) {
-                        AlertDialog(
-                            onDismissRequest = { viewModel.dismissPaywallDialog() },
-                            title = {
-                                Text(
-                                    text = "2 Free Reminders Limit Reached",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DeepSlateNavy
-                                )
-                            },
-                            text = {
-                                Text(
-                                    text = "Free limit (2/2) poori ho chuki hai! Lifetime Pro unlock karein.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = SlateMutedText
-                                )
-                            },
-                            confirmButton = {
-                                Button(
-                                    onClick = {
-                                        viewModel.dismissPaywallDialog()
-                                        PaywallActivity.start(context)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Unlock Lifetime Pro (₹399)", fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = { viewModel.dismissPaywallDialog() }
-                                ) {
-                                    Text("Dismiss", color = SlateMutedText, fontWeight = FontWeight.Medium)
-                                }
-                            },
-                            containerColor = CleanPureWhite,
-                            shape = RoundedCornerShape(22.dp)
                         )
                     }
                 }
