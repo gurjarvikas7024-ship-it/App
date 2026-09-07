@@ -180,7 +180,7 @@ fun HomeScreen(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Title • Date & Time • Daily / Weekly / Monthly • AI Voice Script",
+                                text = "Title • Date & Time • Daily / Weekly / Monthly",
                                 fontSize = 12.sp,
                                 color = SlateMutedText,
                                 lineHeight = 16.sp
@@ -431,36 +431,6 @@ fun PhotoStyleReminderCard(
                                 fontSize = 12.sp,
                                 color = SlateMutedText
                             )
-
-                            if (reminder.isVoiceEnabled) {
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                // AI Voice Badge
-                                Surface(
-                                    color = SkyBlueContainer,
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.RecordVoiceOver,
-                                            contentDescription = null,
-                                            tint = OceanBlueAccent,
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(
-                                            text = "AI Voice",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = OceanBlueAccent
-                                        )
-                                    }
-                                }
-                            }
 
                             Spacer(modifier = Modifier.width(6.dp))
 

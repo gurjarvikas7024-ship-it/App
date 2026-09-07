@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.service.TTSManager
 import com.example.ui.theme.OceanBlueAccent
 import com.example.ui.theme.SkyBlueContainer
 import com.example.ui.viewmodel.UiState
@@ -38,22 +37,7 @@ fun SettingsProfileScreen(
     onShareApp: () -> Unit = {}
 ) {
     var nameInput by remember(uiState.userName) { mutableStateOf(uiState.userName) }
-    var selectedVoicePreset by remember(uiState.voicePreset) { mutableStateOf(uiState.voicePreset) }
-    var isTestingVoice by remember { mutableStateOf(false) }
     val context = LocalContext.current
-
-    val testTtsManager = remember {
-        TTSManager(context).apply {
-            onSpeechFinished = {
-                isTestingVoice = false
-            }
-        }
-    }
-    DisposableEffect(Unit) {
-        onDispose {
-            testTtsManager.shutdown()
-        }
-    }
 
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }
     val isBatteryOptimized = remember {
@@ -121,159 +105,6 @@ fun SettingsProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
                     )
-                }
-            }
-
-            // AI Voice Assistant (Sweet Indian Female Voice - Bodyguard Style)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, SkyBlueContainer)
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = SkyBlueContainer,
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.RecordVoiceOver,
-                                    contentDescription = null,
-                                    tint = OceanBlueAccent,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "AI Voice Assistant",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "भारतीय महिला आवाज़ (साफ़ और मधुर)",
-                                fontSize = 12.sp,
-                                color = OceanBlueAccent,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Active Single Voice Badge (Bodyguard Movie / Kareena Style)
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = SkyBlueContainer.copy(alpha = 0.5f),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, OceanBlueAccent),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = OceanBlueAccent,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "Kareena (Sweet Indian Female)",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        color = OceanBlueAccent,
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Text(
-                                            "Active Voice",
-                                            color = androidx.compose.ui.graphics.Color.White,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    "Bodyguard फ़िल्म जैसी मीठी, शांत और बिल्कुल साफ़ भारतीय आवाज़। हर रिमाइंडर को बिना किसी शोर के स्पष्ट और प्यार से याद दिलाएगी।",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 16.sp
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Smart Volume Ducking & Clarity Feature
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.VolumeUp,
-                                    contentDescription = null,
-                                    tint = OceanBlueAccent,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "स्मार्ट वॉल्यूम डकिंग (Smart Audio Ducking)",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "अलार्म बजते वक्त रिंगटोन अपने आप 15% पर धीमी हो जाती है ताकि करीना की आवाज़ 100% स्पष्ट, लाउड और साफ़ सुनाई दे।",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Test Voice Button
-                    Button(
-                        onClick = {
-                            isTestingVoice = true
-                            val testMessage = "Hello! Main aapki AI assistant hoon. Bodyguard movie jaisi meethi aur saaf aawaz me, main aapko aapka har zaroori kaam time par yaad dilaungi."
-                            testTtsManager.speak(testMessage, "Indian Female")
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent)
-                    ) {
-                        Icon(
-                            imageVector = if (isTestingVoice) Icons.Default.VolumeUp else Icons.Default.RecordVoiceOver,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (isTestingVoice) "आवाज़ चल रही है (Playing Voice)..." else "Test Voice / आवाज़ सुनें",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             }
 
