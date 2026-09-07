@@ -34,7 +34,7 @@ fun VoiceInputBottomSheet(
     onSaveReminder: (ReminderEntity) -> Unit
 ) {
     var textInput by remember { mutableStateOf("") }
-    var selectedVoicePreset by remember { mutableStateOf("Studio Female") }
+    var selectedVoicePreset by remember { mutableStateOf("Indian Female") }
     var isRecording by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var previewReminder by remember { mutableStateOf<ReminderEntity?>(null) }

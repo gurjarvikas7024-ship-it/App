@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ReminderEntity
 import com.example.data.model.ReminderStatus
+import com.example.data.model.RepeatType
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.HomeFilterTab
 import com.example.ui.viewmodel.UiState
@@ -340,8 +341,15 @@ fun PhotoStyleReminderCard(
     onEdit: () -> Unit,
     onSnooze: () -> Unit
 ) {
-    val timeSdf = remember { SimpleDateFormat("hh:mm a", Locale.ENGLISH) }
-    val formattedTime = remember(reminder.timeMillis) { timeSdf.format(Date(reminder.timeMillis)) }
+    val formattedDateTime = remember(reminder.timeMillis, reminder.repeatType) {
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.ENGLISH)
+        when (reminder.repeatType) {
+            RepeatType.DAILY.name -> "Daily at " + timeFormat.format(Date(reminder.timeMillis))
+            RepeatType.WEEKLY.name -> SimpleDateFormat("EEE, dd MMM • hh:mm a", Locale.ENGLISH).format(Date(reminder.timeMillis))
+            RepeatType.MONTHLY.name -> SimpleDateFormat("dd MMM • hh:mm a", Locale.ENGLISH).format(Date(reminder.timeMillis))
+            else -> SimpleDateFormat("dd MMM • hh:mm a", Locale.ENGLISH).format(Date(reminder.timeMillis))
+        }
+    }
     val isCompleted = reminder.status == ReminderStatus.COMPLETED.name
 
     Card(
@@ -419,36 +427,38 @@ fun PhotoStyleReminderCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = formattedTime,
+                                text = formattedDateTime,
                                 fontSize = 12.sp,
                                 color = SlateMutedText
                             )
 
-                            Spacer(modifier = Modifier.width(6.dp))
+                            if (reminder.isVoiceEnabled) {
+                                Spacer(modifier = Modifier.width(6.dp))
 
-                            // AI Voice Badge
-                            Surface(
-                                color = SkyBlueContainer,
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                // AI Voice Badge
+                                Surface(
+                                    color = SkyBlueContainer,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, SkyBorderColor)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.RecordVoiceOver,
-                                        contentDescription = null,
-                                        tint = OceanBlueAccent,
-                                        modifier = Modifier.size(10.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = "AI Voice",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = OceanBlueAccent
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.RecordVoiceOver,
+                                            contentDescription = null,
+                                            tint = OceanBlueAccent,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = "AI Voice",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OceanBlueAccent
+                                        )
+                                    }
                                 }
                             }
 

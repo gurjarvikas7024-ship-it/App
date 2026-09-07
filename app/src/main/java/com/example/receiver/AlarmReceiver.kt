@@ -14,6 +14,7 @@ import com.example.data.model.RepeatType
 import com.example.service.AlarmScheduler
 import com.example.service.AlarmService
 import com.example.service.NotificationHelper
+import com.example.service.ReminderScheduleHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,8 +72,24 @@ class AlarmReceiver : BroadcastReceiver() {
                         if (reminderId != -1L) {
                             val db = AppDatabase.getInstance(context)
                             val reminder = db.reminderDao().getReminderById(reminderId)
-                            if (reminder != null && reminder.repeatType != RepeatType.DAILY.name) {
-                                db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                            if (reminder != null) {
+                                if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                                    // Ensure it is scheduled for the next upcoming occurrence
+                                    val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
+                                        reminder.timeMillis,
+                                        reminder.repeatType,
+                                        System.currentTimeMillis()
+                                    )
+                                    val updated = reminder.copy(
+                                        timeMillis = nextTrigger,
+                                        status = ReminderStatus.PENDING.name
+                                    )
+                                    db.reminderDao().updateReminder(updated)
+                                    AlarmScheduler(context).schedule(updated)
+                                    Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) preserved for next cycle: $nextTrigger")
+                                } else {
+                                    db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -142,36 +159,30 @@ class AlarmReceiver : BroadcastReceiver() {
                     Log.e("AlarmReceiver", "Error starting AlarmService", e)
                 }
 
-                // DAILY REPEATING LOGIC: If Daily, IMMEDIATELY reschedule for tomorrow (+24h) with 0 delay
+                // RECURRING LOGIC (Daily, Weekly, Monthly, Yearly):
+                // Advance to next cycle (e.g., +1 day, +7 days for weekly, +1 month on same day-of-month for monthly)
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         if (reminderId != -1L) {
                             val db = AppDatabase.getInstance(context)
                             val reminder = db.reminderDao().getReminderById(reminderId)
-                            if (reminder != null) {
-                                if (reminder.repeatType == RepeatType.DAILY.name || reminder.repeatType.equals("DAILY", ignoreCase = true)) {
-                                    // Calculate tomorrow at exact same hour/min with 0 seconds/0 millis
-                                    val nextDayCal = Calendar.getInstance().apply {
-                                        timeInMillis = reminder.timeMillis
-                                        add(Calendar.DAY_OF_YEAR, 1)
-                                        set(Calendar.SECOND, 0)
-                                        set(Calendar.MILLISECOND, 0)
-                                        while (timeInMillis <= System.currentTimeMillis()) {
-                                            add(Calendar.DAY_OF_YEAR, 1)
-                                        }
-                                    }
-                                    val nextDailyReminder = reminder.copy(
-                                        timeMillis = nextDayCal.timeInMillis,
-                                        status = ReminderStatus.PENDING.name
-                                    )
-                                    db.reminderDao().updateReminder(nextDailyReminder)
-                                    AlarmScheduler(context).schedule(nextDailyReminder)
-                                    Log.d("AlarmReceiver", "Daily reminder $reminderId auto-rescheduled for tomorrow at ${nextDayCal.time}")
-                                }
+                            if (reminder != null && ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                                val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
+                                    reminder.timeMillis,
+                                    reminder.repeatType,
+                                    System.currentTimeMillis()
+                                )
+                                val nextRecurringReminder = reminder.copy(
+                                    timeMillis = nextTrigger,
+                                    status = ReminderStatus.PENDING.name
+                                )
+                                db.reminderDao().updateReminder(nextRecurringReminder)
+                                AlarmScheduler(context).schedule(nextRecurringReminder)
+                                Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) auto-rescheduled for next cycle: $nextTrigger")
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Error auto-rescheduling daily reminder", e)
+                        Log.e("AlarmReceiver", "Error auto-rescheduling recurring reminder", e)
                     }
                 }
             }

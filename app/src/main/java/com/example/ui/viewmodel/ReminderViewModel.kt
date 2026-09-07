@@ -12,6 +12,7 @@ import com.example.data.repository.ReminderRepository
 import com.example.service.AlarmScheduler
 import com.example.service.GeminiReminderService
 import com.example.service.ParsedReminderResult
+import com.example.service.ReminderScheduleHelper
 import com.example.service.SmartVoiceParser
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,7 +34,7 @@ data class UiState(
     val isPremium: Boolean = false,
     val language: String = "en",
     val voiceGender: String = "FEMALE",
-    val voicePreset: String = "Studio Female",
+    val voicePreset: String = "Indian Female",
     val isLoggedIn: Boolean = false,
     val userEmail: String = "user@example.com",
     val loginProvider: String = "GUEST",
@@ -207,7 +208,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setVoiceSettings(language: String, gender: String, preset: String = "Studio Female") {
+    fun setVoiceSettings(language: String, gender: String, preset: String = "Indian Female") {
         viewModelScope.launch {
             userPrefs.setLanguage(language)
             userPrefs.setVoiceGender(gender)
@@ -349,8 +350,25 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     fun markCompleted(id: Long) {
         viewModelScope.launch {
-            repository.markCompleted(id)
-            alarmScheduler.cancel(id)
+            val reminder = repository.getReminderById(id)
+            if (reminder != null) {
+                if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                    val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
+                        reminder.timeMillis,
+                        reminder.repeatType,
+                        System.currentTimeMillis()
+                    )
+                    val updated = reminder.copy(
+                        timeMillis = nextTrigger,
+                        status = ReminderStatus.PENDING.name
+                    )
+                    repository.updateReminder(updated)
+                    alarmScheduler.schedule(updated)
+                } else {
+                    repository.markCompleted(id)
+                    alarmScheduler.cancel(id)
+                }
+            }
         }
     }
 

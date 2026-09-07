@@ -14,7 +14,7 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_USER_NAME = stringPreferencesKey("user_name")
         val KEY_LANGUAGE = stringPreferencesKey("language") // "en" or "hi"
         val KEY_VOICE_GENDER = stringPreferencesKey("voice_gender") // "FEMALE" or "MALE"
-        val KEY_VOICE_PRESET = stringPreferencesKey("voice_preset") // "Studio Female", "Executive Male", "Soft Narrator", "Bold Leader"
+        val KEY_VOICE_PRESET = stringPreferencesKey("voice_preset") // "Indian Female", "Indian Male", "Hindi Swara"
         val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val KEY_IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val KEY_USER_EMAIL = stringPreferencesKey("user_email")
@@ -36,7 +36,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     val voicePresetFlow: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_VOICE_PRESET] ?: "Studio Female"
+        prefs[KEY_VOICE_PRESET] ?: "Indian Female"
     }
 
     val isOnboardingDoneFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->

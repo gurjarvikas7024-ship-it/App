@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ReminderEntity
 import com.example.data.model.RepeatType
+import com.example.service.ReminderScheduleHelper
 import com.example.ui.theme.OrangeAccent
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,7 +34,6 @@ fun AddEditReminderScreen(
     val context = LocalContext.current
 
     var title by remember { mutableStateOf(existingReminder?.title ?: "") }
-    var description by remember { mutableStateOf(existingReminder?.description ?: "") }
     var repeatType by remember { mutableStateOf(existingReminder?.repeatType ?: RepeatType.ONCE.name) }
 
     val calendar = remember {
@@ -158,8 +158,9 @@ fun AddEditReminderScreen(
             }
 
             // Date & Time Selectors Row:
-            // When Daily is selected, HIDE Date Picker completely and only show Time Picker
             val isDaily = repeatType == RepeatType.DAILY.name
+            val isWeekly = repeatType == RepeatType.WEEKLY.name
+            val isMonthly = repeatType == RepeatType.MONTHLY.name
 
             if (isDaily) {
                 // Daily: Only Time Picker
@@ -178,44 +179,77 @@ fun AddEditReminderScreen(
                     }
                 }
             } else {
-                // Once / Weekly / Monthly: Both Date & Time Pickers
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedButton(
-                        onClick = { datePickerDialog.show() },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp)
+                // Once / Weekly / Monthly: Date & Time Pickers
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val labelPrompt = when {
+                        isWeekly -> "Select Day & Time (Repeats Every Week):"
+                        isMonthly -> "Select Date & Time (Repeats Every Month):"
+                        else -> "Select Date & Time:"
+                    }
+                    Text(labelPrompt, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(selectedDateText, fontSize = 13.sp)
+                        OutlinedButton(
+                            onClick = { datePickerDialog.show() },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(selectedDateText, fontSize = 13.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = { timePickerDialog.show() },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(selectedTimeText, fontSize = 13.sp)
+                        }
                     }
 
-                    OutlinedButton(
-                        onClick = { timePickerDialog.show() },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp)
+                    // Recurrence Schedule Summary Preview
+                    val scheduleSummary = when {
+                        isWeekly -> {
+                            val dayName = SimpleDateFormat("EEEE", Locale.ENGLISH).format(calendar.time)
+                            "Har 7 din me bje: Every $dayName at $selectedTimeText"
+                        }
+                        isMonthly -> {
+                            val dayNum = calendar.get(Calendar.DAY_OF_MONTH)
+                            "Har month bje: Har mahine ki $dayNum tarikh ko $selectedTimeText"
+                        }
+                        else -> "One-time reminder on $selectedDateText at $selectedTimeText"
+                    }
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(selectedTimeText, fontSize = 13.sp)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = OrangeAccent
+                            )
+                            Text(
+                                scheduleSummary,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
-
-            // Notes / Description
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Notes & Details (Optional)") },
-                placeholder = { Text("Add additional details...") },
-                leadingIcon = { Icon(Icons.Default.Notes, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                shape = RoundedCornerShape(16.dp)
-            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -226,15 +260,10 @@ fun AddEditReminderScreen(
                         // Timing calculation with 0 seconds / 0 millis
                         val targetCal = Calendar.getInstance().apply {
                             if (isDaily) {
-                                // Set today's date with chosen hour and minute
                                 set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
                                 set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
                                 set(Calendar.SECOND, 0)
                                 set(Calendar.MILLISECOND, 0)
-                                // If time already passed today, set for tomorrow
-                                if (timeInMillis <= System.currentTimeMillis()) {
-                                    add(Calendar.DAY_OF_YEAR, 1)
-                                }
                             } else {
                                 timeInMillis = calendar.timeInMillis
                                 set(Calendar.SECOND, 0)
@@ -242,11 +271,21 @@ fun AddEditReminderScreen(
                             }
                         }
 
+                        val calculatedTime = if (ReminderScheduleHelper.isRecurring(repeatType)) {
+                            ReminderScheduleHelper.getNextTriggerTime(
+                                targetCal.timeInMillis,
+                                repeatType,
+                                System.currentTimeMillis()
+                            )
+                        } else {
+                            targetCal.timeInMillis
+                        }
+
                         val reminderToSave = ReminderEntity(
                             id = existingReminder?.id ?: 0,
                             title = title.trim(),
-                            description = description.trim(),
-                            timeMillis = targetCal.timeInMillis,
+                            description = "",
+                            timeMillis = calculatedTime,
                             repeatType = repeatType,
                             isVoiceEnabled = false,
                             voicePreset = "",

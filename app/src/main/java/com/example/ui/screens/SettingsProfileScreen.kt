@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.service.TTSManager
 import com.example.ui.theme.OceanBlueAccent
 import com.example.ui.theme.SkyBlueContainer
 import com.example.ui.viewmodel.UiState
@@ -37,7 +38,22 @@ fun SettingsProfileScreen(
     onShareApp: () -> Unit = {}
 ) {
     var nameInput by remember(uiState.userName) { mutableStateOf(uiState.userName) }
+    var selectedVoicePreset by remember(uiState.voicePreset) { mutableStateOf(uiState.voicePreset) }
+    var isTestingVoice by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val testTtsManager = remember {
+        TTSManager(context).apply {
+            onSpeechFinished = {
+                isTestingVoice = false
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            testTtsManager.shutdown()
+        }
+    }
 
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }
     val isBatteryOptimized = remember {
@@ -105,6 +121,164 @@ fun SettingsProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
                     )
+                }
+            }
+
+            // AI Voice Assistant (Indian Voice) Configuration Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, SkyBlueContainer)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = SkyBlueContainer,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.RecordVoiceOver,
+                                    contentDescription = null,
+                                    tint = OceanBlueAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "AI Voice Assistant (Indian Voice)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "साफ़ और स्पष्ट भारतीय आवाज़ (en-IN / hi-IN)",
+                                fontSize = 12.sp,
+                                color = OceanBlueAccent,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        "Select Preferred Indian Voice:",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val voiceOptions = listOf(
+                        Triple("Indian Female", "Indian Female (Pari / Aditi)", "Sweet, polite & crystal clear Indian accent"),
+                        Triple("Indian Male", "Indian Male (Aarav / Rohan)", "Calm, confident & clear deep Indian tone"),
+                        Triple("Hindi Swara", "Hindi Swara (Desi Tone)", "Natural Hindi & Hinglish pronunciation")
+                    )
+
+                    voiceOptions.forEach { (presetKey, title, desc) ->
+                        val isSelected = selectedVoicePreset.contains(presetKey, ignoreCase = true) ||
+                                (presetKey == "Indian Female" && (selectedVoicePreset == "Studio Female" || selectedVoicePreset == "Indian Female"))
+
+                        Surface(
+                            onClick = {
+                                selectedVoicePreset = presetKey
+                                val gender = if (presetKey.contains("Male")) "MALE" else "FEMALE"
+                                val lang = if (presetKey.contains("Hindi")) "hi" else "en"
+                                onSaveVoiceSettings(lang, gender, presetKey)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) SkyBlueContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) OceanBlueAccent else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedVoicePreset = presetKey
+                                        val gender = if (presetKey.contains("Male")) "MALE" else "FEMALE"
+                                        val lang = if (presetKey.contains("Hindi")) "hi" else "en"
+                                        onSaveVoiceSettings(lang, gender, presetKey)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(desc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Audio Clarity features info
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OceanBlueAccent, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Smart Volume Ducking Enabled", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                "Alarm bajte waqt ringtone automatic dheemi ho jayegi taaki reminder aawaz bilkul saaf aur loud sunai de.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Test Voice Button
+                    Button(
+                        onClick = {
+                            isTestingVoice = true
+                            val testMessage = if (selectedVoicePreset.contains("Male", ignoreCase = true)) {
+                                "Namaste! Yeh aapka smart reminder alert hai. Aawaz ab bilkul saaf aur spasht sunai degi."
+                            } else if (selectedVoicePreset.contains("Hindi", ignoreCase = true)) {
+                                "नमस्ते! यह आपका रिमाइंडर अलर्ट है। भारतीय आवाज़ अब बिल्कुल साफ़ और मधुर है।"
+                            } else {
+                                "Namaste! Yeh aapka reminder alert hai. Humari aawaz ab bilkul saaf aur Bharatiya accent me hai."
+                            }
+                            testTtsManager.speak(testMessage, selectedVoicePreset)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = OceanBlueAccent)
+                    ) {
+                        Icon(
+                            imageVector = if (isTestingVoice) Icons.Default.VolumeUp else Icons.Default.RecordVoiceOver,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (isTestingVoice) "Playing Sample Voice..." else "Test Voice / आवाज़ सुनें",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 

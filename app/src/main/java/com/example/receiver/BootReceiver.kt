@@ -7,6 +7,7 @@ import android.util.Log
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderStatus
 import com.example.service.AlarmScheduler
+import com.example.service.ReminderScheduleHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -35,6 +36,17 @@ class BootReceiver : BroadcastReceiver() {
                     for (reminder in pendingReminders) {
                         if (reminder.timeMillis > now) {
                             scheduler.schedule(reminder)
+                            restoredCount++
+                        } else if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                            // Missed while device was powered off: advance to next future occurrence
+                            val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
+                                reminder.timeMillis,
+                                reminder.repeatType,
+                                now
+                            )
+                            val updated = reminder.copy(timeMillis = nextTrigger)
+                            db.reminderDao().updateReminder(updated)
+                            scheduler.schedule(updated)
                             restoredCount++
                         } else {
                             db.reminderDao().updateStatus(reminder.id, ReminderStatus.MISSED.name)

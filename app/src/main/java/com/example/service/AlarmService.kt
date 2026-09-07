@@ -23,6 +23,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.data.db.AppDatabase
+import com.example.data.model.ReminderStatus
 import com.example.data.repository.ReminderRepository
 import com.example.ui.alarm.FullScreenAlarmActivity
 import kotlinx.coroutines.CoroutineScope
@@ -74,7 +75,22 @@ class AlarmService : Service() {
         }
 
         try {
-            ttsManager = TTSManager(applicationContext)
+            ttsManager = TTSManager(applicationContext).apply {
+                onSpeechStarted = {
+                    try {
+                        mediaPlayer?.setVolume(0.15f, 0.15f)
+                    } catch (e: Exception) {
+                        Log.w("AlarmService", "Failed to duck volume", e)
+                    }
+                }
+                onSpeechFinished = {
+                    try {
+                        mediaPlayer?.setVolume(1.0f, 1.0f)
+                    } catch (e: Exception) {
+                        Log.w("AlarmService", "Failed to restore volume", e)
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e("AlarmService", "Failed to create TTSManager", e)
         }
@@ -124,8 +140,18 @@ class AlarmService : Service() {
         // 3. Play voice announcement using TTS
         serviceScope.launch {
             delay(1500) // slight delay to allow alarm ring to establish
-            val voiceText = if (script.isNotBlank()) script else "Reminder: $title"
+            val cleanTitle = title.trim()
+            val voiceText = if (script.isNotBlank()) script else "Attention please! Aapka reminder hai: $cleanTitle"
             ttsManager?.speak(voiceText, preset)
+
+            delay(16000) // Repeat once after 16s if user hasn't dismissed yet
+            try {
+                if (mediaPlayer?.isPlaying == true) {
+                    ttsManager?.speak(voiceText, preset)
+                }
+            } catch (e: Exception) {
+                // Ignore if media player stopped
+            }
         }
 
         // 4. Try opening FullScreenAlarmActivity
@@ -309,8 +335,25 @@ class AlarmService : Service() {
             try {
                 if (reminderId != -1L) {
                     val db = AppDatabase.getInstance(applicationContext)
-                    val repo = ReminderRepository(db.reminderDao())
-                    repo.markCompleted(reminderId)
+                    val reminder = db.reminderDao().getReminderById(reminderId)
+                    if (reminder != null) {
+                        if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                            val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
+                                reminder.timeMillis,
+                                reminder.repeatType,
+                                System.currentTimeMillis()
+                            )
+                            val updated = reminder.copy(
+                                timeMillis = nextTrigger,
+                                status = ReminderStatus.PENDING.name
+                            )
+                            db.reminderDao().updateReminder(updated)
+                            AlarmScheduler(applicationContext).schedule(updated)
+                            Log.d("AlarmService", "Recurring reminder $reminderId preserved for next occurrence: $nextTrigger")
+                        } else {
+                            db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("AlarmService", "Error marking reminder completed", e)
