@@ -56,24 +56,24 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
                 }
             })
 
-            // Set Indian English as primary default locale
+            // Set Indian locale setup (prefer Hindi / Indian English with sweet female voice)
             val indianLocale = Locale("en", "IN")
             val result = tts?.setLanguage(indianLocale)
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Fallback to Hindi (India)
                 val hiResult = tts?.setLanguage(Locale("hi", "IN"))
                 if (hiResult == TextToSpeech.LANG_MISSING_DATA || hiResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                     tts?.language = Locale.getDefault()
                 }
             }
 
-            // Natural, clear speech settings (0.92x speed allows clear enunciation without rushing)
-            tts?.setPitch(1.0f)
-            tts?.setSpeechRate(0.92f)
+            // Sweet, warm, crystal clear Indian female tone (0.90x gentle pacing, 1.03x warm pitch)
+            tts?.setPitch(1.03f)
+            tts?.setSpeechRate(0.90f)
+            selectSweetIndianFemaleVoice(Locale.getDefault().language)
             isInitialized = true
 
             pendingSpeech?.let { speech ->
-                speak(speech, pendingPreset ?: "Indian Female")
+                speak(speech)
                 pendingSpeech = null
                 pendingPreset = null
             }
@@ -116,33 +116,12 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
                 }
             }
 
-            val isFemale = !voicePreset.contains("Male", ignoreCase = true) &&
-                           !voicePreset.contains("Leader", ignoreCase = true)
+            val isFemale = true // Single unified Sweet Indian Female Voice (Bodyguard style)
 
-            // Fine-tune pitch and speech rate for maximum clarity
-            when {
-                voicePreset.contains("Male", ignoreCase = true) || voicePreset.contains("Executive", ignoreCase = true) -> {
-                    tts?.setPitch(0.95f) // Natural deep Indian male tone
-                    tts?.setSpeechRate(0.92f) // Measured, clean pace
-                    selectIndianVoice(isFemale = false, targetLanguage = targetLocale.language)
-                }
-                voicePreset.contains("Bold", ignoreCase = true) -> {
-                    tts?.setPitch(0.98f)
-                    tts?.setSpeechRate(0.95f)
-                    selectIndianVoice(isFemale = false, targetLanguage = targetLocale.language)
-                }
-                voicePreset.contains("Soft", ignoreCase = true) -> {
-                    tts?.setPitch(1.02f)
-                    tts?.setSpeechRate(0.90f) // Gentle, calm tempo
-                    selectIndianVoice(isFemale = true, targetLanguage = targetLocale.language)
-                }
-                else -> {
-                    // Default Indian Female (Pari / Aditi)
-                    tts?.setPitch(1.0f) // Completely natural human pitch, no high-pitch chipmunk
-                    tts?.setSpeechRate(0.93f) // Clear, crisp Indian pronunciation
-                    selectIndianVoice(isFemale = true, targetLanguage = targetLocale.language)
-                }
-            }
+            // Fine-tune pitch and speech rate for sweet, soft, crystal-clear Indian tone (Bodyguard Kareena Kapoor style)
+            tts?.setPitch(1.03f) // Sweet, gentle, feminine warmth
+            tts?.setSpeechRate(0.90f) // Soft, relaxed, crystal-clear pronunciation
+            selectSweetIndianFemaleVoice(targetLocale.language)
 
             val params = Bundle().apply {
                 putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
@@ -166,36 +145,38 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     }
 
     /**
-     * Finds and selects the best available Indian voice on the device (Google TTS / System)
+     * Finds and selects the sweetest, clearest Indian female voice on the device (Bodyguard Kareena Kapoor style)
      */
-    private fun selectIndianVoice(isFemale: Boolean, targetLanguage: String) {
+    private fun selectSweetIndianFemaleVoice(targetLanguage: String) {
         try {
             val voices = tts?.voices ?: return
             if (voices.isEmpty()) return
 
-            // 1. First priority: Indian voices matching language & gender
-            val indianVoices = voices.filter { voice ->
-                isVoiceIndian(voice)
-            }
+            val indianVoices = voices.filter { voice -> isVoiceIndian(voice) }
 
+            // Priority 1: Specifically sweet female neural voice identifiers ('hie', 'ahp', 'cxx', 'hid', 'enc')
             val candidate = indianVoices.firstOrNull { voice ->
-                voice.locale.language.equals(targetLanguage, ignoreCase = true) &&
-                matchesGender(voice, isFemale) &&
+                val name = voice.name.lowercase()
+                (name.contains("hie") || name.contains("ahp") || name.contains("cxx") || name.contains("hid") || name.contains("enc")) &&
                 !voice.isNetworkConnectionRequired
             } ?: indianVoices.firstOrNull { voice ->
-                voice.locale.language.equals(targetLanguage, ignoreCase = true) &&
-                matchesGender(voice, isFemale)
+                val name = voice.name.lowercase()
+                name.contains("hie") || name.contains("ahp") || name.contains("cxx") || name.contains("hid") || name.contains("enc")
             } ?: indianVoices.firstOrNull { voice ->
-                matchesGender(voice, isFemale)
+                voice.locale.language.equals(targetLanguage, ignoreCase = true) &&
+                matchesGender(voice, isFemale = true) &&
+                !voice.isNetworkConnectionRequired
+            } ?: indianVoices.firstOrNull { voice ->
+                matchesGender(voice, isFemale = true)
             } ?: indianVoices.firstOrNull()
-              ?: voices.firstOrNull { matchesGender(it, isFemale) }
+              ?: voices.firstOrNull { matchesGender(it, isFemale = true) }
 
             if (candidate != null) {
                 tts?.voice = candidate
-                Log.d("TTSManager", "Selected Indian Voice: ${candidate.name} (${candidate.locale})")
+                Log.d("TTSManager", "Selected Sweet Indian Female Voice: ${candidate.name} (${candidate.locale})")
             }
         } catch (e: Exception) {
-            Log.w("TTSManager", "Error selecting custom voice: ${e.message}")
+            Log.w("TTSManager", "Error selecting sweet female voice: ${e.message}")
         }
     }
 

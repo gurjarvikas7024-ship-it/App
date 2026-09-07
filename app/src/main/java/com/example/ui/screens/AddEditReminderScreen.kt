@@ -287,8 +287,8 @@ fun AddEditReminderScreen(
                             description = "",
                             timeMillis = calculatedTime,
                             repeatType = repeatType,
-                            isVoiceEnabled = false,
-                            voicePreset = "",
+                            isVoiceEnabled = true,
+                            voicePreset = "Indian Female",
                             customVoiceScript = title.trim(),
                             status = existingReminder?.status ?: "PENDING"
                         )

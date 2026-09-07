@@ -124,7 +124,7 @@ fun SettingsProfileScreen(
                 }
             }
 
-            // AI Voice Assistant (Indian Voice) Configuration Card
+            // AI Voice Assistant (Sweet Indian Female Voice - Bodyguard Style)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -137,28 +137,28 @@ fun SettingsProfileScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = SkyBlueContainer,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.RecordVoiceOver,
                                     contentDescription = null,
                                     tint = OceanBlueAccent,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "AI Voice Assistant (Indian Voice)",
+                                "AI Voice Assistant",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "साफ़ और स्पष्ट भारतीय आवाज़ (en-IN / hi-IN)",
+                                "भारतीय महिला आवाज़ (साफ़ और मधुर)",
                                 fontSize = 12.sp,
                                 color = OceanBlueAccent,
                                 fontWeight = FontWeight.SemiBold
@@ -168,81 +168,82 @@ fun SettingsProfileScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    Text(
-                        "Select Preferred Indian Voice:",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val voiceOptions = listOf(
-                        Triple("Indian Female", "Indian Female (Pari / Aditi)", "Sweet, polite & crystal clear Indian accent"),
-                        Triple("Indian Male", "Indian Male (Aarav / Rohan)", "Calm, confident & clear deep Indian tone"),
-                        Triple("Hindi Swara", "Hindi Swara (Desi Tone)", "Natural Hindi & Hinglish pronunciation")
-                    )
-
-                    voiceOptions.forEach { (presetKey, title, desc) ->
-                        val isSelected = selectedVoicePreset.contains(presetKey, ignoreCase = true) ||
-                                (presetKey == "Indian Female" && (selectedVoicePreset == "Studio Female" || selectedVoicePreset == "Indian Female"))
-
-                        Surface(
-                            onClick = {
-                                selectedVoicePreset = presetKey
-                                val gender = if (presetKey.contains("Male")) "MALE" else "FEMALE"
-                                val lang = if (presetKey.contains("Hindi")) "hi" else "en"
-                                onSaveVoiceSettings(lang, gender, presetKey)
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) SkyBlueContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                if (isSelected) 1.5.dp else 1.dp,
-                                if (isSelected) OceanBlueAccent else MaterialTheme.colorScheme.outlineVariant
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                    // Active Single Voice Badge (Bodyguard Movie / Kareena Style)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = SkyBlueContainer.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, OceanBlueAccent),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = isSelected,
-                                    onClick = {
-                                        selectedVoicePreset = presetKey
-                                        val gender = if (presetKey.contains("Male")) "MALE" else "FEMALE"
-                                        val lang = if (presetKey.contains("Hindi")) "hi" else "en"
-                                        onSaveVoiceSettings(lang, gender, presetKey)
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = OceanBlueAccent,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Kareena (Sweet Indian Female)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        color = OceanBlueAccent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            "Active Voice",
+                                            color = androidx.compose.ui.graphics.Color.White,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
                                     }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text(desc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    "Bodyguard फ़िल्म जैसी मीठी, शांत और बिल्कुल साफ़ भारतीय आवाज़। हर रिमाइंडर को बिना किसी शोर के स्पष्ट और प्यार से याद दिलाएगी।",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 16.sp
+                                )
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Audio Clarity features info
+                    // Smart Volume Ducking & Clarity Feature
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.VolumeUp, contentDescription = null, tint = OceanBlueAccent, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Smart Volume Ducking Enabled", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Icon(
+                                    Icons.Default.VolumeUp,
+                                    contentDescription = null,
+                                    tint = OceanBlueAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "स्मार्ट वॉल्यूम डकिंग (Smart Audio Ducking)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
                             }
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Alarm bajte waqt ringtone automatic dheemi ho jayegi taaki reminder aawaz bilkul saaf aur loud sunai de.",
+                                "अलार्म बजते वक्त रिंगटोन अपने आप 15% पर धीमी हो जाती है ताकि करीना की आवाज़ 100% स्पष्ट, लाउड और साफ़ सुनाई दे।",
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -255,14 +256,8 @@ fun SettingsProfileScreen(
                     Button(
                         onClick = {
                             isTestingVoice = true
-                            val testMessage = if (selectedVoicePreset.contains("Male", ignoreCase = true)) {
-                                "Namaste! Yeh aapka smart reminder alert hai. Aawaz ab bilkul saaf aur spasht sunai degi."
-                            } else if (selectedVoicePreset.contains("Hindi", ignoreCase = true)) {
-                                "नमस्ते! यह आपका रिमाइंडर अलर्ट है। भारतीय आवाज़ अब बिल्कुल साफ़ और मधुर है।"
-                            } else {
-                                "Namaste! Yeh aapka reminder alert hai. Humari aawaz ab bilkul saaf aur Bharatiya accent me hai."
-                            }
-                            testTtsManager.speak(testMessage, selectedVoicePreset)
+                            val testMessage = "Hello! Main aapki AI assistant hoon. Bodyguard movie jaisi meethi aur saaf aawaz me, main aapko aapka har zaroori kaam time par yaad dilaungi."
+                            testTtsManager.speak(testMessage, "Indian Female")
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -275,7 +270,7 @@ fun SettingsProfileScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isTestingVoice) "Playing Sample Voice..." else "Test Voice / आवाज़ सुनें",
+                            if (isTestingVoice) "आवाज़ चल रही है (Playing Voice)..." else "Test Voice / आवाज़ सुनें",
                             fontWeight = FontWeight.Bold
                         )
                     }

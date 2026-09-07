@@ -141,7 +141,7 @@ class AlarmService : Service() {
         serviceScope.launch {
             delay(1500) // slight delay to allow alarm ring to establish
             val cleanTitle = title.trim()
-            val voiceText = if (script.isNotBlank()) script else "Attention please! Aapka reminder hai: $cleanTitle"
+            val voiceText = if (script.isNotBlank()) script else "Hello! Aapka reminder time ho gaya hai: $cleanTitle. Please dhyan dijiye."
             ttsManager?.speak(voiceText, preset)
 
             delay(16000) // Repeat once after 16s if user hasn't dismissed yet
