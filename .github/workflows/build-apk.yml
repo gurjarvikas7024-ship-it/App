@@ -5,6 +5,10 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +27,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: '8.10.2'
+        cache-disabled: true
 
     - name: Generate Compatible Wrapper
       run: |
@@ -34,7 +39,21 @@ jobs:
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
+      continue-on-error: true
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/*.apk
+        retention-days: 7
+
+    - name: Release Direct APK
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/main'
+      continue-on-error: true
+      with:
+        tag_name: v1.0-latest
+        name: "Memory Plus App (Direct APK)"
+        body: "Download the direct APK file below onto your Android phone."
+        files: app/build/outputs/apk/debug/*.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
