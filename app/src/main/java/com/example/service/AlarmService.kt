@@ -28,8 +28,8 @@ import com.example.data.repository.ReminderRepository
 import com.example.ui.alarm.FullScreenAlarmActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -53,11 +53,12 @@ class AlarmService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var ttsManager: TTSManager? = null
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(serviceJob + Dispatchers.IO)
 
     private var currentReminderId: Long = -1L
     private var currentReminderTitle: String = "Reminder Alert!"
+    private var autoTimeoutJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -72,27 +73,6 @@ class AlarmService : Service() {
             wakeLock?.acquire(10 * 60 * 1000L) // 10 minutes max safety timeout
         } catch (e: Exception) {
             Log.e("AlarmService", "Failed to acquire wake lock in onCreate", e)
-        }
-
-        try {
-            ttsManager = TTSManager(applicationContext).apply {
-                onSpeechStarted = {
-                    try {
-                        mediaPlayer?.setVolume(0.15f, 0.15f)
-                    } catch (e: Exception) {
-                        Log.w("AlarmService", "Failed to duck volume", e)
-                    }
-                }
-                onSpeechFinished = {
-                    try {
-                        mediaPlayer?.setVolume(1.0f, 1.0f)
-                    } catch (e: Exception) {
-                        Log.w("AlarmService", "Failed to restore volume", e)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("AlarmService", "Failed to create TTSManager", e)
         }
     }
 
@@ -134,24 +114,15 @@ class AlarmService : Service() {
         createNotificationChannel()
         promoteToForegroundImmediately(title, script, id)
 
-        // 2. Start looping alarm sound and continuous vibration
+        // 2. Start looping alarm sound and continuous vibration (pure reminder ring, no AI voice)
         startAudioAndVibration()
 
-        // 3. Play voice announcement using TTS
-        serviceScope.launch {
-            delay(1500) // slight delay to allow alarm ring to establish
-            val cleanTitle = title.trim()
-            val voiceText = if (script.isNotBlank()) script else "Hello! Aapka reminder time ho gaya hai: $cleanTitle. Please dhyan dijiye."
-            ttsManager?.speak(voiceText, preset)
-
-            delay(16000) // Repeat once after 16s if user hasn't dismissed yet
-            try {
-                if (mediaPlayer?.isPlaying == true) {
-                    ttsManager?.speak(voiceText, preset)
-                }
-            } catch (e: Exception) {
-                // Ignore if media player stopped
-            }
+        // 3. Auto timeout after 2 minutes (120 seconds) if unattended
+        autoTimeoutJob?.cancel()
+        autoTimeoutJob = serviceScope.launch {
+            delay(120_000L)
+            Log.d("AlarmService", "Alarm ringing reached 2 minute timeout. Auto-dismissing and rescheduling next occurrence.")
+            handleDismiss(id)
         }
 
         // 4. Try opening FullScreenAlarmActivity
@@ -302,6 +273,13 @@ class AlarmService : Service() {
 
     private fun stopAlarmMediaAndVibration() {
         try {
+            autoTimeoutJob?.cancel()
+            autoTimeoutJob = null
+        } catch (e: Exception) {
+            // Ignored
+        }
+
+        try {
             mediaPlayer?.let {
                 if (it.isPlaying) it.stop()
                 it.release()
@@ -316,12 +294,6 @@ class AlarmService : Service() {
             vibrator = null
         } catch (e: Exception) {
             Log.e("AlarmService", "Error stopping Vibrator", e)
-        }
-
-        try {
-            ttsManager?.stop()
-        } catch (e: Exception) {
-            Log.e("AlarmService", "Error stopping TTS", e)
         }
     }
 
@@ -441,7 +413,7 @@ class AlarmService : Service() {
 
             val bigTextStyle = NotificationCompat.BigTextStyle()
                 .setBigContentTitle("🔔 MEMORY PLUS REMINDER")
-                .bigText("$title\n\n${if (script.isNotBlank()) script else "Tap to open full screen or use quick actions below."}")
+                .bigText(if (title.isNotBlank()) title else "Reminder Alert")
 
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -462,18 +434,14 @@ class AlarmService : Service() {
                 .build()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    try {
-                        startForeground(
-                            NOTIFICATION_ID,
-                            notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                        )
-                    } catch (e: Throwable) {
-                        Log.e("AlarmService", "startForeground specialUse failed", e)
-                        startForeground(NOTIFICATION_ID, notification)
-                    }
-                } else {
+                try {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
+                } catch (e: Throwable) {
+                    Log.e("AlarmService", "startForeground mediaPlayback failed, trying default", e)
                     startForeground(NOTIFICATION_ID, notification)
                 }
             } else {
@@ -519,8 +487,6 @@ class AlarmService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopAlarmMediaAndVibration()
-        ttsManager?.shutdown()
-        ttsManager = null
         try {
             if (wakeLock?.isHeld == true) {
                 wakeLock?.release()
@@ -528,7 +494,7 @@ class AlarmService : Service() {
         } catch (e: Exception) {
             Log.e("AlarmService", "Error releasing WakeLock", e)
         }
-        serviceScope.cancel()
+        serviceJob.cancel()
     }
 }
 

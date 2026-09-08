@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
             // Easy App Share intent
             fun shareApp() {
                 val appUrl = "https://ais-pre-mvsv77bjsyvy3eq4bsm3vs-505949836468.asia-east1.run.app"
-                val shareText = "Memory Plus - 100% Free Smart Full-Screen Alarms & Voice Reminder App ⏰\n\nAb koi bhi task ya dawaai na bhoolein! Download/Open app:\n$appUrl"
+                val shareText = "Memory Plus - 100% Free Smart Full-Screen Alarms & Reminder App ⏰\n\nAb koi bhi task ya dawaai na bhoolein! Download/Open app:\n$appUrl"
                 try {
                     val sendIntent = Intent().apply {
                         action = Intent.ACTION_SEND

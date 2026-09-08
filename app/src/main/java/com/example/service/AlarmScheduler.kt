@@ -89,12 +89,21 @@ class AlarmScheduler(private val context: Context) {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                AlarmManagerCompat.setExactAndAllowWhileIdle(
-                    alarmManager!!,
-                    AlarmManager.RTC_WAKEUP,
-                    reminder.timeMillis,
-                    pendingIntent
-                )
+                try {
+                    AlarmManagerCompat.setExactAndAllowWhileIdle(
+                        alarmManager!!,
+                        AlarmManager.RTC_WAKEUP,
+                        reminder.timeMillis,
+                        pendingIntent
+                    )
+                } catch (secEx: SecurityException) {
+                    Log.w("AlarmScheduler", "Exact alarm denied, using setAndAllowWhileIdle", secEx)
+                    alarmManager?.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        reminder.timeMillis,
+                        pendingIntent
+                    )
+                }
             } catch (ex: Exception) {
                 Log.e("AlarmScheduler", "Fallback scheduling failed completely", ex)
             }

@@ -42,19 +42,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val script = intent.getStringExtra(EXTRA_REMINDER_SCRIPT) ?: ""
         val preset = intent.getStringExtra(EXTRA_REMINDER_PRESET) ?: ""
 
-        // Acquire WakeLock immediately so CPU wakes up with 0s delay
-        var wakeLock: PowerManager.WakeLock? = null
-        try {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            wakeLock = powerManager?.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                "MemoryPlus:AlarmReceiverWakeLock"
-            )
-            wakeLock?.acquire(60 * 1000L) // 60s guarantee while service launches and rings
-        } catch (e: Exception) {
-            Log.e("AlarmReceiver", "Failed acquiring wake lock", e)
-        }
-
         when (action) {
             ACTION_MARK_DONE -> {
                 Log.d("AlarmReceiver", "Mark as Done for ID: $reminderId")
@@ -65,8 +52,13 @@ class AlarmReceiver : BroadcastReceiver() {
                     this.action = AlarmService.ACTION_DISMISS_ALARM
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
                 }
-                context.startService(serviceIntent)
+                try {
+                    context.startService(serviceIntent)
+                } catch (e: Exception) {
+                    Log.e("AlarmReceiver", "Error stopping service on mark done", e)
+                }
 
+                val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         if (reminderId != -1L) {
@@ -89,11 +81,14 @@ class AlarmReceiver : BroadcastReceiver() {
                                     Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) preserved for next cycle: $nextTrigger")
                                 } else {
                                     db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                                    AlarmScheduler(context).cancel(reminderId)
                                 }
                             }
                         }
                     } catch (e: Exception) {
                         Log.e("AlarmReceiver", "Error marking reminder completed", e)
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
                 Toast.makeText(context, "Reminder marked as done", Toast.LENGTH_SHORT).show()
@@ -108,8 +103,13 @@ class AlarmReceiver : BroadcastReceiver() {
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
                     putExtra(AlarmService.EXTRA_SNOOZE_MINUTES, 10)
                 }
-                context.startService(serviceIntent)
+                try {
+                    context.startService(serviceIntent)
+                } catch (e: Exception) {
+                    Log.e("AlarmReceiver", "Error sending snooze to service", e)
+                }
 
+                val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         if (reminderId != -1L) {
@@ -131,6 +131,8 @@ class AlarmReceiver : BroadcastReceiver() {
                         }
                     } catch (e: Exception) {
                         Log.e("AlarmReceiver", "Error snoozing reminder", e)
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
                 Toast.makeText(context, "Snoozed for 10 minutes", Toast.LENGTH_SHORT).show()
@@ -161,6 +163,20 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 // RECURRING LOGIC (Daily, Weekly, Monthly, Yearly):
                 // Advance to next cycle (e.g., +1 day, +7 days for weekly, +1 month on same day-of-month for monthly)
+                // Use goAsync() + WakeLock so Android OS does not kill or sleep CPU before DB write and AlarmManager schedule complete!
+                val pendingResult = goAsync()
+                var asyncWakeLock: PowerManager.WakeLock? = null
+                try {
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    asyncWakeLock = powerManager?.newWakeLock(
+                        PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                        "MemoryPlus:AlarmReceiverAsyncLock"
+                    )
+                    asyncWakeLock?.acquire(30_000L)
+                } catch (e: Exception) {
+                    Log.e("AlarmReceiver", "Failed to acquire async wake lock", e)
+                }
+
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         if (reminderId != -1L) {
@@ -183,17 +199,18 @@ class AlarmReceiver : BroadcastReceiver() {
                         }
                     } catch (e: Exception) {
                         Log.e("AlarmReceiver", "Error auto-rescheduling recurring reminder", e)
+                    } finally {
+                        try {
+                            if (asyncWakeLock?.isHeld == true) {
+                                asyncWakeLock.release()
+                            }
+                        } catch (e: Exception) {
+                            // Ignored
+                        }
+                        pendingResult.finish()
                     }
                 }
             }
-        }
-
-        try {
-            if (wakeLock?.isHeld == true) {
-                wakeLock.release()
-            }
-        } catch (e: Exception) {
-            // Ignored
         }
     }
 }

@@ -14,6 +14,8 @@ import com.example.service.GeminiReminderService
 import com.example.service.ParsedReminderResult
 import com.example.service.ReminderScheduleHelper
 import com.example.service.SmartVoiceParser
+import android.util.Log
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -71,6 +73,40 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     val showPaywallLimitDialog: StateFlow<Boolean> = _showPaywallLimitDialog.asStateFlow()
 
     private val _preferenceRefreshTrigger = MutableStateFlow(System.currentTimeMillis())
+
+    init {
+        // Startup audit: Ensure all active recurring alarms are registered and any overdue alarms are advanced
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val pendingList = db.reminderDao().getRemindersByStatus(ReminderStatus.PENDING.name).first()
+                val now = System.currentTimeMillis()
+                for (reminder in pendingList) {
+                    if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                        if (reminder.timeMillis <= now) {
+                            val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
+                                reminder.timeMillis,
+                                reminder.repeatType,
+                                now
+                            )
+                            val updated = reminder.copy(
+                                timeMillis = nextTrigger,
+                                status = ReminderStatus.PENDING.name
+                            )
+                            db.reminderDao().updateReminder(updated)
+                            alarmScheduler.schedule(updated)
+                            Log.d("ReminderViewModel", "Startup audit: advanced recurring reminder ${reminder.id} to $nextTrigger")
+                        } else {
+                            alarmScheduler.schedule(reminder)
+                        }
+                    } else if (reminder.timeMillis > now) {
+                        alarmScheduler.schedule(reminder)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ReminderViewModel", "Error in startup alarm audit", e)
+            }
+        }
+    }
 
     private val voiceSettingsFlow = combine(userPrefs.voiceGenderFlow, userPrefs.voicePresetFlow) { gender, preset ->
         UserVoice(gender, preset)
@@ -353,11 +389,15 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             val reminder = repository.getReminderById(id)
             if (reminder != null) {
                 if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                    val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
-                        reminder.timeMillis,
-                        reminder.repeatType,
-                        System.currentTimeMillis()
-                    )
+                    val nextTrigger = if (reminder.timeMillis <= System.currentTimeMillis()) {
+                        ReminderScheduleHelper.advanceToNextOccurrence(
+                            reminder.timeMillis,
+                            reminder.repeatType,
+                            System.currentTimeMillis()
+                        )
+                    } else {
+                        reminder.timeMillis
+                    }
                     val updated = reminder.copy(
                         timeMillis = nextTrigger,
                         status = ReminderStatus.PENDING.name
