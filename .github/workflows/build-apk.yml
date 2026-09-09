@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK & AAB Bundle
 
 on:
   workflow_dispatch:
@@ -34,8 +34,8 @@ jobs:
         gradle wrapper --gradle-version 8.10.2
         chmod +x ./gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon
+    - name: Build Debug APK and AAB Bundle
+      run: ./gradlew assembleDebug bundleDebug --no-daemon
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -45,15 +45,25 @@ jobs:
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 7
 
-    - name: Release Direct APK
+    - name: Upload AAB Bundle
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      with:
+        name: app-debug-aab
+        path: app/build/outputs/bundle/debug/*.aab
+        retention-days: 7
+
+    - name: Release Direct APK and AAB
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main'
       continue-on-error: true
       with:
         tag_name: v1.0-latest
-        name: "Memory Plus App (Direct APK)"
-        body: "Download the direct APK file below onto your Android phone."
-        files: app/build/outputs/apk/debug/*.apk
+        name: "Memory Plus App (APK & AAB Bundle)"
+        body: "Download the direct APK file for your phone or the AAB bundle below."
+        files: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/bundle/debug/*.aab
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
