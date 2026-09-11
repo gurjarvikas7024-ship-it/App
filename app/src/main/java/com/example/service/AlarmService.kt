@@ -24,6 +24,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderStatus
+import com.example.data.model.RepeatType
 import com.example.data.repository.ReminderRepository
 import com.example.ui.alarm.FullScreenAlarmActivity
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +41,7 @@ class AlarmService : Service() {
         const val NOTIFICATION_ID = 9991
         const val ACTION_START_ALARM = "com.example.service.ACTION_START_ALARM"
         const val ACTION_DISMISS_ALARM = "com.example.service.ACTION_DISMISS_ALARM"
+        const val ACTION_MISSED_ALARM = "com.example.service.ACTION_MISSED_ALARM"
         const val ACTION_SNOOZE_ALARM = "com.example.service.ACTION_SNOOZE_ALARM"
         const val ACTION_STOP_SERVICE = "com.example.service.ACTION_STOP_SERVICE"
 
@@ -91,6 +93,9 @@ class AlarmService : Service() {
             ACTION_DISMISS_ALARM -> {
                 handleDismiss(id)
             }
+            ACTION_MISSED_ALARM -> {
+                handleMissed(id, title)
+            }
             ACTION_SNOOZE_ALARM -> {
                 handleSnooze(id, snoozeMinutes)
             }
@@ -117,12 +122,12 @@ class AlarmService : Service() {
         // 2. Start looping alarm sound and continuous vibration (pure reminder ring, no AI voice)
         startAudioAndVibration()
 
-        // 3. Auto timeout after 2 minutes (120 seconds) if unattended
+        // 3. Auto timeout after 2 minutes (120 seconds) if unattended without user pressing snooze or dismiss -> marks as MISSED
         autoTimeoutJob?.cancel()
         autoTimeoutJob = serviceScope.launch {
             delay(120_000L)
-            Log.d("AlarmService", "Alarm ringing reached 2 minute timeout. Auto-dismissing and rescheduling next occurrence.")
-            handleDismiss(id)
+            Log.d("AlarmService", "Alarm ringing reached 2 minute timeout without snooze/dismiss. Marking as MISSED.")
+            handleMissed(id, title)
         }
 
         // 4. Try opening FullScreenAlarmActivity
@@ -301,7 +306,10 @@ class AlarmService : Service() {
         stopAlarmMediaAndVibration()
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
-        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
+        if (reminderId != -1L) {
+            notificationManager?.cancel(reminderId.toInt())
+            NotificationHelper.cancelNotification(applicationContext, reminderId)
+        }
 
         serviceScope.launch {
             try {
@@ -310,6 +318,15 @@ class AlarmService : Service() {
                     val reminder = db.reminderDao().getReminderById(reminderId)
                     if (reminder != null) {
                         if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                            // 1. Record this occurrence as COMPLETED in history
+                            val completedRecord = reminder.copy(
+                                id = 0,
+                                repeatType = RepeatType.ONCE.name,
+                                status = ReminderStatus.COMPLETED.name
+                            )
+                            db.reminderDao().insertReminder(completedRecord)
+
+                            // 2. Advance recurring reminder to next cycle strictly in future
                             val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
                                 reminder.timeMillis,
                                 reminder.repeatType,
@@ -321,9 +338,11 @@ class AlarmService : Service() {
                             )
                             db.reminderDao().updateReminder(updated)
                             AlarmScheduler(applicationContext).schedule(updated)
-                            Log.d("AlarmService", "Recurring reminder $reminderId preserved for next occurrence: $nextTrigger")
+                            Log.d("AlarmService", "Recurring reminder $reminderId dismissed: recorded as COMPLETED, next cycle scheduled: $nextTrigger")
                         } else {
                             db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
+                            AlarmScheduler(applicationContext).cancel(reminderId)
+                            Log.d("AlarmService", "One-time reminder $reminderId dismissed: marked as COMPLETED.")
                         }
                     }
                 }
@@ -335,11 +354,66 @@ class AlarmService : Service() {
         }
     }
 
+    private fun handleMissed(reminderId: Long, reminderTitle: String) {
+        stopAlarmMediaAndVibration()
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        notificationManager?.cancel(NOTIFICATION_ID)
+        if (reminderId != -1L) {
+            notificationManager?.cancel(reminderId.toInt())
+            // Post persistent missed reminder notification so user is aware when checking their phone
+            NotificationHelper.showMissedReminderNotification(applicationContext, reminderId, reminderTitle)
+        }
+
+        serviceScope.launch {
+            try {
+                if (reminderId != -1L) {
+                    val db = AppDatabase.getInstance(applicationContext)
+                    val reminder = db.reminderDao().getReminderById(reminderId)
+                    if (reminder != null) {
+                        if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                            // 1. Record this occurrence as MISSED in history
+                            val missedRecord = reminder.copy(
+                                id = 0,
+                                repeatType = RepeatType.ONCE.name,
+                                status = ReminderStatus.MISSED.name
+                            )
+                            db.reminderDao().insertReminder(missedRecord)
+
+                            // 2. Advance recurring reminder to next future occurrence
+                            val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
+                                reminder.timeMillis,
+                                reminder.repeatType,
+                                System.currentTimeMillis()
+                            )
+                            val updated = reminder.copy(
+                                timeMillis = nextTrigger,
+                                status = ReminderStatus.PENDING.name
+                            )
+                            db.reminderDao().updateReminder(updated)
+                            AlarmScheduler(applicationContext).schedule(updated)
+                            Log.d("AlarmService", "Recurring reminder $reminderId missed: recorded as MISSED, next cycle scheduled: $nextTrigger")
+                        } else {
+                            db.reminderDao().updateStatus(reminderId, ReminderStatus.MISSED.name)
+                            Log.d("AlarmService", "One-time reminder $reminderId marked as MISSED due to timeout.")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AlarmService", "Error marking reminder missed", e)
+            } finally {
+                stopSelf()
+            }
+        }
+    }
+
     private fun handleSnooze(reminderId: Long, snoozeMinutes: Int) {
         stopAlarmMediaAndVibration()
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
-        if (reminderId != -1L) notificationManager?.cancel(reminderId.toInt())
+        if (reminderId != -1L) {
+            notificationManager?.cancel(reminderId.toInt())
+            NotificationHelper.cancelNotification(applicationContext, reminderId)
+        }
 
         serviceScope.launch {
             try {
@@ -350,9 +424,13 @@ class AlarmService : Service() {
                     val reminder = repo.getReminderById(reminderId)
                     if (reminder != null) {
                         val snoozedTime = System.currentTimeMillis() + (snoozeMinutes * 60 * 1000L)
-                        val updated = reminder.copy(timeMillis = snoozedTime)
+                        val updated = reminder.copy(
+                            timeMillis = snoozedTime,
+                            status = ReminderStatus.PENDING.name
+                        )
                         repo.updateReminder(updated)
                         scheduler.schedule(updated)
+                        Log.d("AlarmService", "Reminder $reminderId snoozed by $snoozeMinutes minutes to $snoozedTime")
                     }
                 }
             } catch (e: Exception) {

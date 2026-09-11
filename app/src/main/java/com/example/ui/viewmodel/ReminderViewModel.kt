@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderEntity
 import com.example.data.model.ReminderStatus
+import com.example.data.model.RepeatType
 import com.example.data.preferences.PreferenceManager
 import com.example.data.preferences.UserPreferencesRepository
 import com.example.data.repository.ReminderRepository
 import com.example.service.AlarmScheduler
 import com.example.service.GeminiReminderService
+import com.example.service.NotificationHelper
 import com.example.service.ParsedReminderResult
 import com.example.service.ReminderScheduleHelper
 import com.example.service.SmartVoiceParser
@@ -75,15 +77,24 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     private val _preferenceRefreshTrigger = MutableStateFlow(System.currentTimeMillis())
 
     init {
-        // Startup audit: Ensure all active recurring alarms are registered and any overdue alarms are advanced
+        // Startup audit: Catch any alarms that fired while phone was off or app was closed without user interaction
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val pendingList = db.reminderDao().getRemindersByStatus(ReminderStatus.PENDING.name).first()
                 val now = System.currentTimeMillis()
                 for (reminder in pendingList) {
-                    if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                        if (reminder.timeMillis <= now) {
-                            val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
+                    if (reminder.timeMillis <= now) {
+                        if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
+                            // 1. Record missed occurrence so it moves to Missed Reminders
+                            val missedRecord = reminder.copy(
+                                id = 0,
+                                repeatType = RepeatType.ONCE.name,
+                                status = ReminderStatus.MISSED.name
+                            )
+                            db.reminderDao().insertReminder(missedRecord)
+
+                            // 2. Advance recurring reminder to next upcoming occurrence
+                            val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
                                 reminder.timeMillis,
                                 reminder.repeatType,
                                 now
@@ -94,11 +105,14 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
                             )
                             db.reminderDao().updateReminder(updated)
                             alarmScheduler.schedule(updated)
-                            Log.d("ReminderViewModel", "Startup audit: advanced recurring reminder ${reminder.id} to $nextTrigger")
+                            Log.d("ReminderViewModel", "Startup audit: marked missed and advanced recurring reminder ${reminder.id} to $nextTrigger")
                         } else {
-                            alarmScheduler.schedule(reminder)
+                            // Non-recurring: mark as MISSED
+                            db.reminderDao().updateStatus(reminder.id, ReminderStatus.MISSED.name)
+                            Log.d("ReminderViewModel", "Startup audit: marked overdue reminder ${reminder.id} as MISSED")
                         }
-                    } else if (reminder.timeMillis > now) {
+                    } else {
+                        // Future alarm: ensure schedule is registered
                         alarmScheduler.schedule(reminder)
                     }
                 }
@@ -174,16 +188,17 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         cal.set(Calendar.MILLISECOND, 0)
         val startOfDay = cal.timeInMillis
         val endOfDay = startOfDay + 24 * 60 * 60 * 1000
+        val now = System.currentTimeMillis()
 
         var filtered = when (tab) {
             HomeFilterTab.TODAY -> list.filter {
-                it.status == ReminderStatus.PENDING.name && it.timeMillis in startOfDay..endOfDay
+                it.status == ReminderStatus.PENDING.name && it.timeMillis in now..endOfDay
             }
             HomeFilterTab.UPCOMING -> list.filter {
                 it.status == ReminderStatus.PENDING.name && it.timeMillis > endOfDay
             }
             HomeFilterTab.MISSED -> list.filter {
-                it.status == ReminderStatus.MISSED.name || (it.status == ReminderStatus.PENDING.name && it.timeMillis < startOfDay)
+                it.status == ReminderStatus.MISSED.name || (it.status == ReminderStatus.PENDING.name && it.timeMillis < now)
             }
             HomeFilterTab.COMPLETED -> list.filter {
                 it.status == ReminderStatus.COMPLETED.name
@@ -388,16 +403,22 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val reminder = repository.getReminderById(id)
             if (reminder != null) {
+                NotificationHelper.cancelNotification(getApplication<Application>(), id)
                 if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                    val nextTrigger = if (reminder.timeMillis <= System.currentTimeMillis()) {
-                        ReminderScheduleHelper.advanceToNextOccurrence(
-                            reminder.timeMillis,
-                            reminder.repeatType,
-                            System.currentTimeMillis()
-                        )
-                    } else {
-                        reminder.timeMillis
-                    }
+                    // 1. Record completed occurrence in history
+                    val completedRecord = reminder.copy(
+                        id = 0,
+                        repeatType = RepeatType.ONCE.name,
+                        status = ReminderStatus.COMPLETED.name
+                    )
+                    repository.insertReminder(completedRecord)
+
+                    // 2. Advance recurring reminder to next future cycle
+                    val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
+                        reminder.timeMillis,
+                        reminder.repeatType,
+                        System.currentTimeMillis()
+                    )
                     val updated = reminder.copy(
                         timeMillis = nextTrigger,
                         status = ReminderStatus.PENDING.name

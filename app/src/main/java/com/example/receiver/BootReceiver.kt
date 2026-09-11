@@ -6,7 +6,9 @@ import android.content.Intent
 import android.util.Log
 import com.example.data.db.AppDatabase
 import com.example.data.model.ReminderStatus
+import com.example.data.model.RepeatType
 import com.example.service.AlarmScheduler
+import com.example.service.NotificationHelper
 import com.example.service.ReminderScheduleHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,26 +35,58 @@ class BootReceiver : BroadcastReceiver() {
                     val now = System.currentTimeMillis()
 
                     var restoredCount = 0
+                    var missedCount = 0
                     for (reminder in pendingReminders) {
                         if (reminder.timeMillis > now) {
                             scheduler.schedule(reminder)
                             restoredCount++
                         } else if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                            // Missed while device was powered off: advance to next future occurrence
+                            // Missed while mobile was switched off:
+                            // 1. Record missed occurrence so it appears in Missed Reminders
+                            val missedRecord = reminder.copy(
+                                id = 0,
+                                repeatType = RepeatType.ONCE.name,
+                                status = ReminderStatus.MISSED.name
+                            )
+                            db.reminderDao().insertReminder(missedRecord)
+
+                            // 2. Advance recurring reminder to next future occurrence
                             val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
                                 reminder.timeMillis,
                                 reminder.repeatType,
                                 now
                             )
-                            val updated = reminder.copy(timeMillis = nextTrigger)
+                            val updated = reminder.copy(
+                                timeMillis = nextTrigger,
+                                status = ReminderStatus.PENDING.name
+                            )
                             db.reminderDao().updateReminder(updated)
                             scheduler.schedule(updated)
                             restoredCount++
+                            missedCount++
+
+                            // 3. Notify user of missed reminder
+                            NotificationHelper.showMissedReminderNotification(
+                                context,
+                                reminder.id,
+                                reminder.title,
+                                reminder.timeMillis
+                            )
                         } else {
+                            // One-time reminder missed while phone was off: mark as MISSED
                             db.reminderDao().updateStatus(reminder.id, ReminderStatus.MISSED.name)
+                            missedCount++
+
+                            // Notify user of missed reminder
+                            NotificationHelper.showMissedReminderNotification(
+                                context,
+                                reminder.id,
+                                reminder.title,
+                                reminder.timeMillis
+                            )
                         }
                     }
-                    Log.d("BootReceiver", "Successfully rescheduled $restoredCount pending alarms.")
+                    Log.d("BootReceiver", "Boot sync finished: $restoredCount pending alarms rescheduled, $missedCount marked as missed.")
                 } catch (e: Exception) {
                     Log.e("BootReceiver", "Error rescheduling alarms after boot", e)
                 } finally {

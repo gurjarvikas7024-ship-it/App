@@ -15,12 +15,18 @@ import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.receiver.AlarmReceiver
 import com.example.ui.alarm.FullScreenAlarmActivity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object NotificationHelper {
 
     const val CHANNEL_ID = "memory_plus_priority_ringtone_v3"
     const val CHANNEL_NAME = "High Priority Reminder Alarms"
+    const val MISSED_CHANNEL_ID = "memory_plus_missed_reminders_v1"
+    const val MISSED_CHANNEL_NAME = "Missed Reminders"
     const val NOTIFICATION_ID_BASE = 2000
+    const val MISSED_NOTIFICATION_ID_BASE = 60000
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -47,8 +53,19 @@ object NotificationHelper {
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setBypassDnd(true)
             }
-
             notificationManager.createNotificationChannel(channel)
+
+            val missedChannel = NotificationChannel(
+                MISSED_CHANNEL_ID,
+                MISSED_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for unattended and missed reminders"
+                enableLights(true)
+                enableVibration(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+            notificationManager.createNotificationChannel(missedChannel)
         }
     }
 
@@ -138,9 +155,66 @@ object NotificationHelper {
         notificationManager.notify(notifId, notification)
     }
 
+    fun showMissedReminderNotification(
+        context: Context,
+        reminderId: Long,
+        title: String,
+        timeMillis: Long = System.currentTimeMillis()
+    ) {
+        createNotificationChannel(context)
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+
+        // 1. Content Intent (Open App)
+        val contentIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPendingIntent = PendingIntent.getActivity(
+            context,
+            (reminderId + 70000).toInt(),
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 2. Mark as Done Action
+        val doneIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_MARK_DONE
+            putExtra(AlarmReceiver.EXTRA_REMINDER_ID, reminderId)
+        }
+        val donePendingIntent = PendingIntent.getBroadcast(
+            context,
+            (reminderId + 80000).toInt(),
+            doneIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeStr = try {
+            SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(Date(timeMillis))
+        } catch (e: Exception) {
+            ""
+        }
+        val subText = if (timeStr.isNotEmpty()) "Scheduled for $timeStr was missed" else "Reminder was missed"
+
+        val notification = NotificationCompat.Builder(context, MISSED_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Missed Reminder: $title")
+            .setContentText(subText)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setContentIntent(contentPendingIntent)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Mark as Done", donePendingIntent)
+            .build()
+
+        val notifId = (reminderId + MISSED_NOTIFICATION_ID_BASE).toInt()
+        notificationManager.notify(notifId, notification)
+    }
+
     fun cancelNotification(context: Context, reminderId: Long) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         val notifId = if (reminderId > 0) reminderId.toInt() else NOTIFICATION_ID_BASE
         notificationManager?.cancel(notifId)
+        val missedNotifId = (reminderId + MISSED_NOTIFICATION_ID_BASE).toInt()
+        notificationManager?.cancel(missedNotifId)
     }
 }

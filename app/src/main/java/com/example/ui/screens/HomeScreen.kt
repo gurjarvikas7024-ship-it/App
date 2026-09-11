@@ -235,15 +235,28 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Upcoming Reminders",
+                            text = when (selectedTab) {
+                                HomeFilterTab.TODAY -> "Today's Reminders"
+                                HomeFilterTab.UPCOMING -> "Upcoming Reminders"
+                                HomeFilterTab.MISSED -> "Missed Reminders"
+                                HomeFilterTab.COMPLETED -> "Completed Reminders"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = DeepSlateNavy
                         )
                         Text(
-                            text = "${reminders.count { it.status == ReminderStatus.PENDING.name }} active",
+                            text = "${reminders.size} ${when (selectedTab) {
+                                HomeFilterTab.MISSED -> "missed"
+                                HomeFilterTab.COMPLETED -> "completed"
+                                else -> "active"
+                            }}",
                             fontSize = 13.sp,
-                            color = OceanBlueAccent,
+                            color = when (selectedTab) {
+                                HomeFilterTab.MISSED -> UrgentRed
+                                HomeFilterTab.COMPLETED -> SuccessGreen
+                                else -> OceanBlueAccent
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -304,14 +317,23 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "No reminders found",
+                                text = when (selectedTab) {
+                                    HomeFilterTab.MISSED -> "No missed reminders"
+                                    HomeFilterTab.COMPLETED -> "No completed reminders"
+                                    HomeFilterTab.TODAY -> "No reminders for today"
+                                    HomeFilterTab.UPCOMING -> "No upcoming reminders"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = DeepSlateNavy
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Tap the + button to add your first reminder",
+                                text = when (selectedTab) {
+                                    HomeFilterTab.MISSED -> "Unattended reminders will appear here"
+                                    HomeFilterTab.COMPLETED -> "Dismissed reminders will appear here"
+                                    else -> "Tap the + button to add your first reminder"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = SlateMutedText
                             )
@@ -351,6 +373,7 @@ fun PhotoStyleReminderCard(
         }
     }
     val isCompleted = reminder.status == ReminderStatus.COMPLETED.name
+    val isMissed = reminder.status == ReminderStatus.MISSED.name
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -364,12 +387,18 @@ fun PhotoStyleReminderCard(
                 .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Accent Bar (Green for completed, Electric Ocean Blue for active)
+            // Left Accent Bar (Green for completed, Electric Ocean Blue for active, Red for missed)
             Box(
                 modifier = Modifier
                     .width(5.dp)
                     .fillMaxHeight()
-                    .background(if (isCompleted) SuccessGreen else OceanBlueAccent)
+                    .background(
+                        when {
+                            isCompleted -> SuccessGreen
+                            isMissed -> UrgentRed
+                            else -> OceanBlueAccent
+                        }
+                    )
             )
 
             Row(
@@ -388,7 +417,13 @@ fun PhotoStyleReminderCard(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(if (isCompleted) SuccessGreenBg else SkyBlueContainer),
+                            .background(
+                                when {
+                                    isCompleted -> SuccessGreenBg
+                                    isMissed -> UrgentRedBg
+                                    else -> SkyBlueContainer
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -396,10 +431,16 @@ fun PhotoStyleReminderCard(
                                 reminder.title.contains("birthday", ignoreCase = true) -> Icons.Default.Cake
                                 reminder.title.contains("medicine", ignoreCase = true) || reminder.title.contains("tab", ignoreCase = true) -> Icons.Default.Medication
                                 reminder.title.contains("cook", ignoreCase = true) || reminder.title.contains("dinner", ignoreCase = true) -> Icons.Default.Restaurant
+                                isMissed -> Icons.Default.NotificationImportant
+                                isCompleted -> Icons.Default.CheckCircle
                                 else -> Icons.Default.NotificationsActive
                             },
                             contentDescription = null,
-                            tint = if (isCompleted) SuccessGreen else OceanBlueAccent,
+                            tint = when {
+                                isCompleted -> SuccessGreen
+                                isMissed -> UrgentRed
+                                else -> OceanBlueAccent
+                            },
                             modifier = Modifier.size(22.dp)
                         )
                     }

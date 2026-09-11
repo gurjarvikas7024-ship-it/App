@@ -66,7 +66,15 @@ class AlarmReceiver : BroadcastReceiver() {
                             val reminder = db.reminderDao().getReminderById(reminderId)
                             if (reminder != null) {
                                 if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                                    // Ensure it is scheduled for the next upcoming occurrence
+                                    // 1. Record completed occurrence in history
+                                    val completedRecord = reminder.copy(
+                                        id = 0,
+                                        repeatType = RepeatType.ONCE.name,
+                                        status = ReminderStatus.COMPLETED.name
+                                    )
+                                    db.reminderDao().insertReminder(completedRecord)
+
+                                    // 2. Schedule next cycle
                                     val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
                                         reminder.timeMillis,
                                         reminder.repeatType,
@@ -78,7 +86,7 @@ class AlarmReceiver : BroadcastReceiver() {
                                     )
                                     db.reminderDao().updateReminder(updated)
                                     AlarmScheduler(context).schedule(updated)
-                                    Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) preserved for next cycle: $nextTrigger")
+                                    Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) marked done and scheduled for: $nextTrigger")
                                 } else {
                                     db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
                                     AlarmScheduler(context).cancel(reminderId)
@@ -159,56 +167,6 @@ class AlarmReceiver : BroadcastReceiver() {
                     }
                 } catch (e: Exception) {
                     Log.e("AlarmReceiver", "Error starting AlarmService", e)
-                }
-
-                // RECURRING LOGIC (Daily, Weekly, Monthly, Yearly):
-                // Advance to next cycle (e.g., +1 day, +7 days for weekly, +1 month on same day-of-month for monthly)
-                // Use goAsync() + WakeLock so Android OS does not kill or sleep CPU before DB write and AlarmManager schedule complete!
-                val pendingResult = goAsync()
-                var asyncWakeLock: PowerManager.WakeLock? = null
-                try {
-                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-                    asyncWakeLock = powerManager?.newWakeLock(
-                        PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-                        "MemoryPlus:AlarmReceiverAsyncLock"
-                    )
-                    asyncWakeLock?.acquire(30_000L)
-                } catch (e: Exception) {
-                    Log.e("AlarmReceiver", "Failed to acquire async wake lock", e)
-                }
-
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        if (reminderId != -1L) {
-                            val db = AppDatabase.getInstance(context)
-                            val reminder = db.reminderDao().getReminderById(reminderId)
-                            if (reminder != null && ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                                val nextTrigger = ReminderScheduleHelper.advanceToNextOccurrence(
-                                    reminder.timeMillis,
-                                    reminder.repeatType,
-                                    System.currentTimeMillis()
-                                )
-                                val nextRecurringReminder = reminder.copy(
-                                    timeMillis = nextTrigger,
-                                    status = ReminderStatus.PENDING.name
-                                )
-                                db.reminderDao().updateReminder(nextRecurringReminder)
-                                AlarmScheduler(context).schedule(nextRecurringReminder)
-                                Log.d("AlarmReceiver", "Recurring reminder $reminderId (${reminder.repeatType}) auto-rescheduled for next cycle: $nextTrigger")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("AlarmReceiver", "Error auto-rescheduling recurring reminder", e)
-                    } finally {
-                        try {
-                            if (asyncWakeLock?.isHeld == true) {
-                                asyncWakeLock.release()
-                            }
-                        } catch (e: Exception) {
-                            // Ignored
-                        }
-                        pendingResult.finish()
-                    }
                 }
             }
         }
