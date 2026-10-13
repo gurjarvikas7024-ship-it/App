@@ -76,10 +76,8 @@
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
             android:theme="@style/Theme.MyApplication"
-            android:launchMode="singleTask" />
+            android:launchMode="singleTop" />
 
         <!-- High-Priority Alarm Broadcast Receiver -->
         <receiver

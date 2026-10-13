@@ -156,10 +156,44 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             else -> {
-                // ACTION_TRIGGER_REMINDER
+                // ACTION_TRIGGER_REMINDER: Wakes up phone and shows reminder directly on full screen
                 Log.d("AlarmReceiver", "Triggering alarm: $reminderId - $title")
+
+                // 1. Wake screen and acquire temporary wake lock
+                try {
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    @Suppress("DEPRECATION")
+                    val wakeLock = powerManager?.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
+                        "MemoryPlus:AlarmReceiverWakeLock"
+                    )
+                    wakeLock?.acquire(15_000L) // 15 seconds to wake device and present full-screen UI
+                } catch (e: Exception) {
+                    Log.e("AlarmReceiver", "WakeLock acquire error", e)
+                }
+
+                // 2. Direct launch of FullScreenAlarmActivity so it immediately appears on the phone's screen
+                val fullScreenIntent = Intent(context, com.example.ui.alarm.FullScreenAlarmActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    )
+                    putExtra(EXTRA_REMINDER_ID, reminderId)
+                    putExtra(EXTRA_REMINDER_TITLE, title)
+                    putExtra(EXTRA_REMINDER_SCRIPT, script)
+                    putExtra(EXTRA_REMINDER_PRESET, preset)
+                }
+                try {
+                    context.startActivity(fullScreenIntent)
+                } catch (e: Exception) {
+                    Log.e("AlarmReceiver", "Direct startActivity from receiver error: ${e.message}")
+                }
+
+                // 3. Post full screen heads-up notification with sound and actions
                 NotificationHelper.showAlarmNotification(context, reminderId, title, script)
 
+                // 4. Start foreground ringer service for looping audio and vibration
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
                     this.action = AlarmService.ACTION_START_ALARM
                     putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
