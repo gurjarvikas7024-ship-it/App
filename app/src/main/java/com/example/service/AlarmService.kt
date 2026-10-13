@@ -303,24 +303,32 @@ class AlarmService : Service() {
     }
 
     private fun handleDismiss(reminderId: Long) {
+        val targetId = if (reminderId != -1L) reminderId else currentReminderId
         stopAlarmMediaAndVibration()
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
-        if (reminderId != -1L) {
-            notificationManager?.cancel(reminderId.toInt())
-            NotificationHelper.cancelNotification(applicationContext, reminderId)
+        if (targetId != -1L) {
+            notificationManager?.cancel(targetId.toInt())
+            NotificationHelper.cancelNotification(applicationContext, targetId)
         }
 
         serviceScope.launch {
             try {
-                if (reminderId != -1L) {
+                if (targetId != -1L) {
                     val db = AppDatabase.getInstance(applicationContext)
-                    val reminder = db.reminderDao().getReminderById(reminderId)
+                    val reminder = db.reminderDao().getReminderById(targetId)
                     if (reminder != null) {
                         if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
                             // 1. Record this occurrence as COMPLETED in history
+                            // CRITICAL: Occurrence time must NEVER be in the future
+                            val occurrenceTime = if (reminder.timeMillis > System.currentTimeMillis()) {
+                                System.currentTimeMillis()
+                            } else {
+                                reminder.timeMillis
+                            }
                             val completedRecord = reminder.copy(
                                 id = 0,
+                                timeMillis = occurrenceTime,
                                 repeatType = RepeatType.ONCE.name,
                                 status = ReminderStatus.COMPLETED.name
                             )
@@ -338,11 +346,11 @@ class AlarmService : Service() {
                             )
                             db.reminderDao().updateReminder(updated)
                             AlarmScheduler(applicationContext).schedule(updated)
-                            Log.d("AlarmService", "Recurring reminder $reminderId dismissed: recorded as COMPLETED, next cycle scheduled: $nextTrigger")
+                            Log.d("AlarmService", "Recurring reminder $targetId dismissed: recorded as COMPLETED, next cycle scheduled: $nextTrigger")
                         } else {
-                            db.reminderDao().updateStatus(reminderId, ReminderStatus.COMPLETED.name)
-                            AlarmScheduler(applicationContext).cancel(reminderId)
-                            Log.d("AlarmService", "One-time reminder $reminderId dismissed: marked as COMPLETED.")
+                            db.reminderDao().updateStatus(targetId, ReminderStatus.COMPLETED.name)
+                            AlarmScheduler(applicationContext).cancel(targetId)
+                            Log.d("AlarmService", "One-time reminder $targetId dismissed: marked as COMPLETED.")
                         }
                     }
                 }
@@ -355,25 +363,32 @@ class AlarmService : Service() {
     }
 
     private fun handleMissed(reminderId: Long, reminderTitle: String) {
+        val targetId = if (reminderId != -1L) reminderId else currentReminderId
         stopAlarmMediaAndVibration()
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
-        if (reminderId != -1L) {
-            notificationManager?.cancel(reminderId.toInt())
+        if (targetId != -1L) {
+            notificationManager?.cancel(targetId.toInt())
             // Post persistent missed reminder notification so user is aware when checking their phone
-            NotificationHelper.showMissedReminderNotification(applicationContext, reminderId, reminderTitle)
+            NotificationHelper.showMissedReminderNotification(applicationContext, targetId, reminderTitle)
         }
 
         serviceScope.launch {
             try {
-                if (reminderId != -1L) {
+                if (targetId != -1L) {
                     val db = AppDatabase.getInstance(applicationContext)
-                    val reminder = db.reminderDao().getReminderById(reminderId)
+                    val reminder = db.reminderDao().getReminderById(targetId)
                     if (reminder != null) {
                         if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                            // 1. Record this occurrence as MISSED in history
+                            // 1. Record this occurrence as MISSED in history (never in future)
+                            val occurrenceTime = if (reminder.timeMillis > System.currentTimeMillis()) {
+                                System.currentTimeMillis()
+                            } else {
+                                reminder.timeMillis
+                            }
                             val missedRecord = reminder.copy(
                                 id = 0,
+                                timeMillis = occurrenceTime,
                                 repeatType = RepeatType.ONCE.name,
                                 status = ReminderStatus.MISSED.name
                             )
@@ -391,10 +406,10 @@ class AlarmService : Service() {
                             )
                             db.reminderDao().updateReminder(updated)
                             AlarmScheduler(applicationContext).schedule(updated)
-                            Log.d("AlarmService", "Recurring reminder $reminderId missed: recorded as MISSED, next cycle scheduled: $nextTrigger")
+                            Log.d("AlarmService", "Recurring reminder $targetId missed: recorded as MISSED, next cycle scheduled: $nextTrigger")
                         } else {
-                            db.reminderDao().updateStatus(reminderId, ReminderStatus.MISSED.name)
-                            Log.d("AlarmService", "One-time reminder $reminderId marked as MISSED due to timeout.")
+                            db.reminderDao().updateStatus(targetId, ReminderStatus.MISSED.name)
+                            Log.d("AlarmService", "One-time reminder $targetId marked as MISSED due to timeout.")
                         }
                     }
                 }

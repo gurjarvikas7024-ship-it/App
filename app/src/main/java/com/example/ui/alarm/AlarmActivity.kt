@@ -37,28 +37,44 @@ import com.example.ui.theme.SkyBlueContainer
 
 open class AlarmActivity : ComponentActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private val reminderIdState = mutableStateOf(-1L)
+    private val reminderTitleState = mutableStateOf("Reminder Alert!")
+    private val descriptionState = mutableStateOf("")
 
-        enforceScreenOvertake()
-
-        val reminderId = intent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L).let {
-            if (it == -1L) intent.getLongExtra(AlarmService.EXTRA_REMINDER_ID, -1L) else it
+    private fun extractIntentData(targetIntent: Intent?) {
+        if (targetIntent == null) return
+        val id = targetIntent.getLongExtra(ReminderReceiver.EXTRA_REMINDER_ID, -1L).let {
+            if (it == -1L) targetIntent.getLongExtra(AlarmService.EXTRA_REMINDER_ID, -1L) else it
         }
-        val reminderTitle = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE)
-            ?: intent.getStringExtra(AlarmService.EXTRA_REMINDER_TITLE)
+        val title = targetIntent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_TITLE)
+            ?: targetIntent.getStringExtra(AlarmService.EXTRA_REMINDER_TITLE)
             ?: "Reminder Alert!"
-        val description = intent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT)
-            ?: intent.getStringExtra(AlarmService.EXTRA_REMINDER_SCRIPT)
+        val desc = targetIntent.getStringExtra(ReminderReceiver.EXTRA_REMINDER_SCRIPT)
+            ?: targetIntent.getStringExtra(AlarmService.EXTRA_REMINDER_SCRIPT)
             ?: ""
 
-        // Ensure AlarmService is running and playing sound continuously
+        if (id != -1L) {
+            reminderIdState.value = id
+        }
+        reminderTitleState.value = title
+        descriptionState.value = desc
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enforceScreenOvertake()
+        extractIntentData(intent)
+
+        // Ensure AlarmService is running and playing sound continuously for the current reminder
+        val currentId = reminderIdState.value
+        val currentTitle = reminderTitleState.value
+        val currentDesc = descriptionState.value
         try {
             val startServiceIntent = Intent(applicationContext, AlarmService::class.java).apply {
                 action = AlarmService.ACTION_START_ALARM
-                putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
-                putExtra(AlarmService.EXTRA_REMINDER_TITLE, reminderTitle)
-                putExtra(AlarmService.EXTRA_REMINDER_SCRIPT, description)
+                putExtra(AlarmService.EXTRA_REMINDER_ID, currentId)
+                putExtra(AlarmService.EXTRA_REMINDER_TITLE, currentTitle)
+                putExtra(AlarmService.EXTRA_REMINDER_SCRIPT, currentDesc)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 androidx.core.content.ContextCompat.startForegroundService(applicationContext, startServiceIntent)
@@ -71,13 +87,17 @@ open class AlarmActivity : ComponentActivity() {
 
         setContent {
             MyApplicationTheme {
+                val activeId by reminderIdState
+                val activeTitle by reminderTitleState
+                val activeNotes by descriptionState
+
                 AlarmFullScreenContent(
-                    title = reminderTitle,
-                    notes = description,
+                    title = activeTitle,
+                    notes = activeNotes,
                     onSnooze = { snoozeMinutes ->
                         val snoozeIntent = Intent(applicationContext, AlarmService::class.java).apply {
                             action = AlarmService.ACTION_SNOOZE_ALARM
-                            putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
+                            putExtra(AlarmService.EXTRA_REMINDER_ID, activeId)
                             putExtra(AlarmService.EXTRA_SNOOZE_MINUTES, snoozeMinutes)
                         }
                         startService(snoozeIntent)
@@ -86,7 +106,7 @@ open class AlarmActivity : ComponentActivity() {
                     onDismiss = {
                         val dismissIntent = Intent(applicationContext, AlarmService::class.java).apply {
                             action = AlarmService.ACTION_DISMISS_ALARM
-                            putExtra(AlarmService.EXTRA_REMINDER_ID, reminderId)
+                            putExtra(AlarmService.EXTRA_REMINDER_ID, activeId)
                         }
                         startService(dismissIntent)
                         finish()
@@ -100,6 +120,7 @@ open class AlarmActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         enforceScreenOvertake()
+        extractIntentData(intent)
     }
 
     private fun enforceScreenOvertake() {

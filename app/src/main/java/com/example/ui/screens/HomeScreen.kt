@@ -534,22 +534,23 @@ fun PhotoStyleReminderCard(
                             Icon(Icons.Default.Delete, contentDescription = "Delete", tint = UrgentRed, modifier = Modifier.size(16.dp))
                         }
 
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(SuccessGreenBg)
-                                .clickable { onToggleCompleted() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Mark Done",
-                                tint = SuccessGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
+                        if (!isCompleted) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(SuccessGreenBg)
+                                    .clickable { onToggleCompleted() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Mark Done",
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }

@@ -65,10 +65,19 @@ class AlarmReceiver : BroadcastReceiver() {
                             val db = AppDatabase.getInstance(context)
                             val reminder = db.reminderDao().getReminderById(reminderId)
                             if (reminder != null) {
+                                if (reminder.status == ReminderStatus.COMPLETED.name) {
+                                    return@launch
+                                }
                                 if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                                    // 1. Record completed occurrence in history
+                                    // 1. Record completed occurrence in history (capped to now, never future)
+                                    val occurrenceTime = if (reminder.timeMillis > System.currentTimeMillis()) {
+                                        System.currentTimeMillis()
+                                    } else {
+                                        reminder.timeMillis
+                                    }
                                     val completedRecord = reminder.copy(
                                         id = 0,
+                                        timeMillis = occurrenceTime,
                                         repeatType = RepeatType.ONCE.name,
                                         status = ReminderStatus.COMPLETED.name
                                     )

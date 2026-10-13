@@ -80,20 +80,23 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         // Startup audit: Catch any alarms that fired while phone was off or app was closed without user interaction
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val pendingList = db.reminderDao().getRemindersByStatus(ReminderStatus.PENDING.name).first()
                 val now = System.currentTimeMillis()
+
+                // 1. Audit Pending Reminders
+                val pendingList = db.reminderDao().getRemindersByStatus(ReminderStatus.PENDING.name).first()
                 for (reminder in pendingList) {
                     if (reminder.timeMillis <= now) {
                         if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                            // 1. Record missed occurrence so it moves to Missed Reminders
+                            // Record missed occurrence so it moves to Missed Reminders
                             val missedRecord = reminder.copy(
                                 id = 0,
+                                timeMillis = reminder.timeMillis,
                                 repeatType = RepeatType.ONCE.name,
                                 status = ReminderStatus.MISSED.name
                             )
                             db.reminderDao().insertReminder(missedRecord)
 
-                            // 2. Advance recurring reminder to next upcoming occurrence
+                            // Advance recurring reminder to next upcoming occurrence strictly in future
                             val nextTrigger = ReminderScheduleHelper.getNextTriggerTime(
                                 reminder.timeMillis,
                                 reminder.repeatType,
@@ -114,6 +117,16 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
                     } else {
                         // Future alarm: ensure schedule is registered
                         alarmScheduler.schedule(reminder)
+                    }
+                }
+
+                // 2. Self-healing audit: Fix any existing corrupted completed history records where timeMillis was set in future
+                val completedList = db.reminderDao().getRemindersByStatus(ReminderStatus.COMPLETED.name).first()
+                for (completedReminder in completedList) {
+                    if (completedReminder.timeMillis > now) {
+                        val fixedReminder = completedReminder.copy(timeMillis = now)
+                        db.reminderDao().updateReminder(fixedReminder)
+                        Log.d("ReminderViewModel", "Corrected future completed timestamp for reminder ${completedReminder.id}")
                     }
                 }
             } catch (e: Exception) {
@@ -403,11 +416,22 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val reminder = repository.getReminderById(id)
             if (reminder != null) {
+                // Ignore if already completed to prevent duplicate clicks and cycles
+                if (reminder.status == ReminderStatus.COMPLETED.name) {
+                    return@launch
+                }
+
                 NotificationHelper.cancelNotification(getApplication<Application>(), id)
                 if (ReminderScheduleHelper.isRecurring(reminder.repeatType)) {
-                    // 1. Record completed occurrence in history
+                    // 1. Record completed occurrence in history (capped to now, never future)
+                    val occurrenceTime = if (reminder.timeMillis > System.currentTimeMillis()) {
+                        System.currentTimeMillis()
+                    } else {
+                        reminder.timeMillis
+                    }
                     val completedRecord = reminder.copy(
                         id = 0,
+                        timeMillis = occurrenceTime,
                         repeatType = RepeatType.ONCE.name,
                         status = ReminderStatus.COMPLETED.name
                     )
