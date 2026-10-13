@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.AlarmManagerCompat
@@ -22,6 +23,7 @@ class AlarmScheduler(private val context: Context) {
         try {
             val intent = Intent(context, AlarmReceiver::class.java).apply {
                 action = AlarmReceiver.ACTION_TRIGGER_REMINDER
+                data = Uri.parse("reminder://${reminder.id}")
                 putExtra(AlarmReceiver.EXTRA_REMINDER_ID, reminder.id)
                 putExtra(AlarmReceiver.EXTRA_REMINDER_TITLE, reminder.title)
                 putExtra(AlarmReceiver.EXTRA_REMINDER_SCRIPT, reminder.customVoiceScript)
@@ -41,6 +43,7 @@ class AlarmScheduler(private val context: Context) {
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                 )
+                data = Uri.parse("reminder_show://${reminder.id}")
                 putExtra(AlarmReceiver.EXTRA_REMINDER_ID, reminder.id)
                 putExtra(AlarmReceiver.EXTRA_REMINDER_TITLE, reminder.title)
                 putExtra(AlarmReceiver.EXTRA_REMINDER_SCRIPT, reminder.customVoiceScript)
@@ -78,6 +81,7 @@ class AlarmScheduler(private val context: Context) {
             try {
                 val intent = Intent(context, AlarmReceiver::class.java).apply {
                     action = AlarmReceiver.ACTION_TRIGGER_REMINDER
+                    data = Uri.parse("reminder://${reminder.id}")
                     putExtra(AlarmReceiver.EXTRA_REMINDER_ID, reminder.id)
                     putExtra(AlarmReceiver.EXTRA_REMINDER_TITLE, reminder.title)
                     putExtra(AlarmReceiver.EXTRA_REMINDER_SCRIPT, reminder.customVoiceScript)
@@ -115,6 +119,7 @@ class AlarmScheduler(private val context: Context) {
         try {
             val intent = Intent(context, AlarmReceiver::class.java).apply {
                 action = AlarmReceiver.ACTION_TRIGGER_REMINDER
+                data = Uri.parse("reminder://$reminderId")
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -123,6 +128,18 @@ class AlarmScheduler(private val context: Context) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             alarmManager.cancel(pendingIntent)
+
+            val showIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
+                data = Uri.parse("reminder_show://$reminderId")
+            }
+            val showPendingIntent = PendingIntent.getActivity(
+                context,
+                (reminderId + 100000).toInt(),
+                showIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(showPendingIntent)
+            Log.d("AlarmScheduler", "Cancelled alarm and showPendingIntent for ID $reminderId")
         } catch (e: Exception) {
             Log.e("AlarmScheduler", "Failed to cancel alarm", e)
         }

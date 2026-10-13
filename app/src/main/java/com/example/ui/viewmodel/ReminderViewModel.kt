@@ -225,7 +225,11 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        filtered.sortedBy { it.timeMillis }
+        if (tab == HomeFilterTab.COMPLETED || tab == HomeFilterTab.MISSED) {
+            filtered.sortedByDescending { it.timeMillis }
+        } else {
+            filtered.sortedBy { it.timeMillis }
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val remindersForSelectedDate: StateFlow<List<ReminderEntity>> = combine(

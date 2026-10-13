@@ -44,6 +44,7 @@ class AlarmService : Service() {
         const val ACTION_MISSED_ALARM = "com.example.service.ACTION_MISSED_ALARM"
         const val ACTION_SNOOZE_ALARM = "com.example.service.ACTION_SNOOZE_ALARM"
         const val ACTION_STOP_SERVICE = "com.example.service.ACTION_STOP_SERVICE"
+        const val ACTION_CLOSE_ALARM_UI = "com.example.service.ACTION_CLOSE_ALARM_UI"
 
         const val EXTRA_REMINDER_ID = "extra_reminder_id"
         const val EXTRA_REMINDER_TITLE = "extra_reminder_title"
@@ -302,9 +303,23 @@ class AlarmService : Service() {
         }
     }
 
+    private fun broadcastCloseAlarmUi(targetId: Long) {
+        try {
+            val closeIntent = Intent(ACTION_CLOSE_ALARM_UI).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_REMINDER_ID, targetId)
+            }
+            sendBroadcast(closeIntent)
+            Log.d("AlarmService", "Broadcasted ACTION_CLOSE_ALARM_UI for reminder $targetId")
+        } catch (e: Exception) {
+            Log.e("AlarmService", "Failed to broadcast close UI", e)
+        }
+    }
+
     private fun handleDismiss(reminderId: Long) {
         val targetId = if (reminderId != -1L) reminderId else currentReminderId
         stopAlarmMediaAndVibration()
+        broadcastCloseAlarmUi(targetId)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
         if (targetId != -1L) {
@@ -365,6 +380,7 @@ class AlarmService : Service() {
     private fun handleMissed(reminderId: Long, reminderTitle: String) {
         val targetId = if (reminderId != -1L) reminderId else currentReminderId
         stopAlarmMediaAndVibration()
+        broadcastCloseAlarmUi(targetId)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
         if (targetId != -1L) {
@@ -423,6 +439,7 @@ class AlarmService : Service() {
 
     private fun handleSnooze(reminderId: Long, snoozeMinutes: Int) {
         stopAlarmMediaAndVibration()
+        broadcastCloseAlarmUi(reminderId)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         notificationManager?.cancel(NOTIFICATION_ID)
         if (reminderId != -1L) {
@@ -580,6 +597,7 @@ class AlarmService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopAlarmMediaAndVibration()
+        broadcastCloseAlarmUi(currentReminderId)
         try {
             if (wakeLock?.isHeld == true) {
                 wakeLock?.release()

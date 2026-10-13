@@ -1,13 +1,17 @@
 package com.example.ui.alarm
 
 import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -34,12 +38,23 @@ import com.example.service.AlarmService
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.OceanBlueAccent
 import com.example.ui.theme.SkyBlueContainer
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 open class AlarmActivity : ComponentActivity() {
 
     private val reminderIdState = mutableStateOf(-1L)
     private val reminderTitleState = mutableStateOf("Reminder Alert!")
     private val descriptionState = mutableStateOf("")
+    private var autoDismissJob: Job? = null
+
+    private val closeUiReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("AlarmActivity", "Received ACTION_CLOSE_ALARM_UI: closing alarm screen immediately")
+            finishAndRemoveTaskSafely()
+        }
+    }
 
     private fun extractIntentData(targetIntent: Intent?) {
         if (targetIntent == null) return
@@ -60,10 +75,52 @@ open class AlarmActivity : ComponentActivity() {
         descriptionState.value = desc
     }
 
+    private fun startAutoDismissTimer() {
+        autoDismissJob?.cancel()
+        autoDismissJob = lifecycleScope.launch {
+            delay(120_000L) // Exactly 2 minutes (120 seconds) unattended timeout
+            Log.d("AlarmActivity", "2-minute timeout elapsed without interaction: closing alarm screen and marking missed")
+            try {
+                val missedIntent = Intent(applicationContext, AlarmService::class.java).apply {
+                    action = AlarmService.ACTION_MISSED_ALARM
+                    putExtra(AlarmService.EXTRA_REMINDER_ID, reminderIdState.value)
+                    putExtra(AlarmService.EXTRA_REMINDER_TITLE, reminderTitleState.value)
+                }
+                startService(missedIntent)
+            } catch (e: Exception) {
+                Log.e("AlarmActivity", "Error requesting missed action on timeout", e)
+            }
+            finishAndRemoveTaskSafely()
+        }
+    }
+
+    private fun finishAndRemoveTaskSafely() {
+        autoDismissJob?.cancel()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            finishAndRemoveTask()
+        } else {
+            finish()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enforceScreenOvertake()
         extractIntentData(intent)
+
+        // Register broadcast receiver to close UI whenever AlarmService stops/snoozes/times out
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(closeUiReceiver, IntentFilter(AlarmService.ACTION_CLOSE_ALARM_UI), Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(closeUiReceiver, IntentFilter(AlarmService.ACTION_CLOSE_ALARM_UI))
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "Failed to register closeUiReceiver", e)
+        }
+
+        // Start 2-minute auto-dismiss timer
+        startAutoDismissTimer()
 
         // Ensure AlarmService is running and playing sound continuously for the current reminder
         val currentId = reminderIdState.value
@@ -95,21 +152,23 @@ open class AlarmActivity : ComponentActivity() {
                     title = activeTitle,
                     notes = activeNotes,
                     onSnooze = { snoozeMinutes ->
+                        autoDismissJob?.cancel()
                         val snoozeIntent = Intent(applicationContext, AlarmService::class.java).apply {
                             action = AlarmService.ACTION_SNOOZE_ALARM
                             putExtra(AlarmService.EXTRA_REMINDER_ID, activeId)
                             putExtra(AlarmService.EXTRA_SNOOZE_MINUTES, snoozeMinutes)
                         }
                         startService(snoozeIntent)
-                        finish()
+                        finishAndRemoveTaskSafely()
                     },
                     onDismiss = {
+                        autoDismissJob?.cancel()
                         val dismissIntent = Intent(applicationContext, AlarmService::class.java).apply {
                             action = AlarmService.ACTION_DISMISS_ALARM
                             putExtra(AlarmService.EXTRA_REMINDER_ID, activeId)
                         }
                         startService(dismissIntent)
-                        finish()
+                        finishAndRemoveTaskSafely()
                     }
                 )
             }
@@ -121,6 +180,17 @@ open class AlarmActivity : ComponentActivity() {
         setIntent(intent)
         enforceScreenOvertake()
         extractIntentData(intent)
+        startAutoDismissTimer()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        autoDismissJob?.cancel()
+        try {
+            unregisterReceiver(closeUiReceiver)
+        } catch (e: Exception) {
+            // Ignored
+        }
     }
 
     private fun enforceScreenOvertake() {

@@ -56,17 +56,50 @@ object SmartVoiceParser {
             }
         }
 
-        // 3. Check specific day markers: "tomorrow", "kal", "parso", "tonight", "aaj raat", "today", "aaj"
-        var isTomorrow = lower.contains("tomorrow") || lower.contains("kal")
-        val isDayAfterTomorrow = lower.contains("parso") || lower.contains("day after tomorrow")
-        val isTonight = lower.contains("tonight") || lower.contains("aaj raat")
+        // 3. Check specific day markers & exact dates
+        var hasExplicitDate = false
+        val isDayAfterTomorrow = Pattern.compile("\\b(parso|parson|day after tomorrow)\\b", Pattern.CASE_INSENSITIVE).matcher(lower).find()
+        val isTomorrow = Pattern.compile("\\b(tomorrow|kal)\\b", Pattern.CASE_INSENSITIVE).matcher(lower).find()
+        val isTonight = Pattern.compile("\\b(tonight|aaj raat)\\b", Pattern.CASE_INSENSITIVE).matcher(lower).find()
 
         if (isDayAfterTomorrow) {
             calendar.add(Calendar.DAY_OF_YEAR, 2)
-            cleanedTitle = cleanedTitle.replace("day after tomorrow", "").replace("parso", "")
+            cleanedTitle = cleanedTitle.replace(Pattern.compile("\\b(parso|parson|day after tomorrow)\\b", Pattern.CASE_INSENSITIVE).toRegex(), " ")
+            hasExplicitDate = true
         } else if (isTomorrow) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
-            cleanedTitle = cleanedTitle.replace("tomorrow", "").replace("kal", "")
+            cleanedTitle = cleanedTitle.replace(Pattern.compile("\\b(tomorrow|kal)\\b", Pattern.CASE_INSENSITIVE).toRegex(), " ")
+            hasExplicitDate = true
+        }
+
+        // Exact Month & Day parsing (e.g., "13 october", "14 oct", "october 13")
+        val monthNames = "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|aktubar|aktobar|navambar|disambar"
+        val monthMap = mapOf(
+            "january" to 0, "jan" to 0,
+            "february" to 1, "feb" to 1,
+            "march" to 2, "mar" to 2,
+            "april" to 3, "apr" to 3,
+            "may" to 4,
+            "june" to 5, "jun" to 5,
+            "july" to 6, "jul" to 6,
+            "august" to 7, "aug" to 7,
+            "september" to 8, "sep" to 8,
+            "october" to 9, "oct" to 9, "aktubar" to 9, "aktobar" to 9,
+            "november" to 10, "nov" to 10, "navambar" to 10,
+            "december" to 11, "dec" to 11, "disambar" to 11
+        )
+        val dayMonthPattern = Pattern.compile("(\\d{1,2})(?:st|nd|rd|th)?\\s*($monthNames)", Pattern.CASE_INSENSITIVE)
+        val dmMatcher = dayMonthPattern.matcher(lower)
+        if (dmMatcher.find()) {
+            val d = dmMatcher.group(1)?.toIntOrNull()
+            val mStr = dmMatcher.group(2)?.lowercase(Locale.ROOT)
+            val m = monthMap[mStr]
+            if (d != null && d in 1..31 && m != null) {
+                calendar.set(Calendar.MONTH, m)
+                calendar.set(Calendar.DAY_OF_MONTH, d)
+                cleanedTitle = cleanedTitle.replace(dmMatcher.group(0) ?: "", " ")
+                hasExplicitDate = true
+            }
         }
 
         // 4. Time extraction (e.g. "at 9 AM", "9:30 pm", "subah 9 baje", "sham 6 baje", "dopahar 2 baje", "raat 10 baje", "7 baje")
@@ -149,8 +182,8 @@ object SmartVoiceParser {
         // Capitalize first letter of title
         cleanedTitle = cleanedTitle.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
 
-        // If calculated time is in the past, add 1 day
-        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+        // If calculated time is in the past, add 1 day ONLY if no explicit date was provided
+        if (!hasExplicitDate && calendar.timeInMillis <= System.currentTimeMillis()) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
 
